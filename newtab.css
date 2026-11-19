@@ -97,10 +97,9 @@ body.privacy .blurrable { filter: blur(8px); }
 .icon-btn[aria-pressed="true"] { background: var(--border); }
 .icon-btn:hover { border-color: var(--dash); }
 #theme + #privacy, #privacy + #settings { margin-left: -8px; } /* sit as a group */
-/* Theme toggle shows the mode it switches to. */
-#theme .to-dark { display: none; }
-:root[data-theme="light"] #theme .to-dark { display: block; }
-:root[data-theme="light"] #theme .to-light { display: none; }
+/* Theme button shows the current preference (auto → light → dark on click). */
+#theme svg { display: none; }
+#theme[data-pref="auto"] .ic-auto, #theme[data-pref="light"] .ic-light, #theme[data-pref="dark"] .ic-dark { display: block; }
 .icon-btn:focus-visible, .seg button:focus-visible, .todo:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 
 /* markets */

@@ -138,14 +138,25 @@ function renderHeader(now) {
   $('privacy').setAttribute('aria-pressed', String(priv));
 }
 
-function applyTheme(theme) {
-  const light = theme === 'light';
+// Theme preference: 'auto' follows Firefox's light/dark appearance (prefers-color-scheme),
+// so tools keyed to it (e.g. Adaptive Tab Bar Colour rules) see the same mode.
+const THEME_ORDER = ['auto', 'light', 'dark'];
+const THEME_LABEL = { auto: 'Auto (follows Firefox)', light: 'Light', dark: 'Dark' };
+const systemDark = matchMedia('(prefers-color-scheme: dark)');
+
+function normTheme(pref) { return THEME_ORDER.includes(pref) ? pref : 'dark'; }
+
+function applyTheme(pref) {
+  const theme = normTheme(pref);
+  const light = theme === 'light' || (theme === 'auto' && !systemDark.matches);
   if (light) document.documentElement.dataset.theme = 'light';
   else delete document.documentElement.dataset.theme;
+  const next = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length];
   const btn = $('theme');
-  btn.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode');
-  btn.title = light ? 'Dark mode' : 'Light mode';
-  try { localStorage.setItem('theme', light ? 'light' : 'dark'); } catch { /* ignore */ }
+  btn.dataset.pref = theme;
+  btn.setAttribute('aria-label', `Theme: ${THEME_LABEL[theme]}. Switch to ${THEME_LABEL[next]}`);
+  btn.title = `Theme: ${THEME_LABEL[theme]}`;
+  try { localStorage.setItem('theme', theme); } catch { /* ignore */ }
 }
 
 function renderBanner() {
@@ -735,7 +746,11 @@ async function init() {
 
   $('privacy').addEventListener('click', () => setUi({ privacy: !ui().privacy }));
   $('settings').addEventListener('click', () => openOptions());
-  $('theme').addEventListener('click', () => setUi({ theme: ui().theme === 'light' ? 'dark' : 'light' }));
+  $('theme').addEventListener('click', () => {
+    const cur = normTheme(ui().theme);
+    setUi({ theme: THEME_ORDER[(THEME_ORDER.indexOf(cur) + 1) % THEME_ORDER.length] });
+  });
+  systemDark.addEventListener('change', () => { if (normTheme(ui().theme) === 'auto') applyTheme('auto'); });
   $('view-days').addEventListener('click', () => setUi({ weatherView: 'days' }));
   $('view-month').addEventListener('click', () => setUi({ weatherView: 'month' }));
   $('day-prev').addEventListener('click', () => shiftDay(-1));

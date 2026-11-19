@@ -76,8 +76,14 @@ the dashboard. Weather works without any keys. The rest is set up in Options
 The page is drawn at 120% by default. To change that, edit `--ui-scale` in `newtab.css`, or
 use Firefox's own zoom (Cmd +/−) on top.
 
-Top-right buttons: sun/moon switches light and dark mode (remembered), the eye toggles the
-privacy blur, and the gear opens Options.
+Top-right buttons: the theme button cycles Auto → Light → Dark (remembered; its icon shows
+the current choice), the eye toggles the privacy blur, and the gear opens Options. **Auto**
+follows Firefox's light/dark appearance (Settings → General → Website appearance), and switches
+live when that changes.
+
+**Adaptive Tab Bar Colour:** Firefox doesn't let one add-on read another add-on's pages, so
+add a rule in its settings for the add-on ID `newtab-dashboard@xrdashboard`: `#0D1117` for dark
+mode, `#F3F5F8` for light mode. With the dashboard on Auto, both follow the same mode.
 
 Shortcuts: press `P`, or click the eye button, to blur the ticker, schedule and to-dos.
 `←`/`→` (or the ‹ Today › buttons) step the schedule through days, from a week back to 30

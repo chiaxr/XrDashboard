@@ -85,7 +85,8 @@ spacing, colours and type from it, not values.
   breakpoints by the scale (720px → 864px).
 - Header: date/time (live 12-hour clock with SGT beside it), location + current temp, counts,
   then three buttons: light/dark toggle, privacy, Settings (opens Options).
-- Themes: dark (design B, default) and light, persisted in `ui.theme`. All colours are CSS
+- Themes: dark (design B, default), light, and auto (follows Firefox's light/dark via
+  `prefers-color-scheme`, live), persisted in `ui.theme`; the header button cycles auto → light → dark. All colours are CSS
   variables in `newtab.css` (`:root` and `:root[data-theme="light"]`); never hard-code a colour in
   JS (SVG colours go in `style`, since presentation attributes can't use `var()`).
   `theme-init.js` applies the last theme from a `localStorage` mirror before first paint.
