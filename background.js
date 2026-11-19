@@ -12,7 +12,8 @@ import { fetchNotion, parseNotionId } from './lib/notion.js';
 import {
   fetchVwraQuote, fetchVwraHistory, vwraQuoteDue, vwraHistoryDue, avBudgetSpend, mergeHistory, appendQuoteToHistory,
 } from './lib/quotes.js';
-import { dateStr } from './lib/time.js';
+import { dateStr, fmtClock } from './lib/time.js';
+import { inBackoff, nextBackoff, isThrottle } from './lib/backoff.js';
 
 const B = globalThis.browser;
 const TICK = 'tick';
@@ -63,6 +64,7 @@ function isDue(rec, cadence, { now, manual, configHash, minManual }) {
   const attempted = rec?.attemptedAt || 0;
   const since = now - attempted;
   if (configHash && rec && rec.configHash !== configHash) return true; // settings changed
+  if (inBackoff(rec?.backoff, now)) return false; // rate-limited: wait, even for manual refresh
   if (manual) return since >= minManual;
   if (!rec || rec.error) return since >= Math.min(cadence, 10 * MIN) - SLACK;
   return since >= cadence - SLACK;
@@ -71,15 +73,19 @@ function isDue(rec, cadence, { now, manual, configHash, minManual }) {
 /** Generic fetch → save for a simple source. */
 function runSimple(key, ctx, { cadence, minManual, configHash = null, host, fetcher, forceDue = false }) {
   const rec = ctx.store[key];
-  if (!forceDue && !isDue(rec, cadence, { ...ctx, configHash, minManual })) return null;
+  const due = isDue(rec, cadence, { ...ctx, configHash, minManual });
+  if (!due && !(forceDue && !inBackoff(rec?.backoff, ctx.now))) return null;
   return once(key, async () => {
     await patchRecord(key, { attemptedAt: ctx.now });
+    const extra = configHash ? { configHash } : {};
     try {
       await requireHost(host);
       const data = await fetcher();
-      await saveData(key, data, configHash ? { configHash } : {});
+      await saveData(key, data, { ...extra, backoff: null });
     } catch (e) {
-      await saveError(key, e, configHash ? { configHash } : {});
+      if (!isThrottle(e)) return saveError(key, e, extra);
+      const backoff = nextBackoff(rec?.backoff, e, ctx.now);
+      await saveError(key, `${e.message} — rate limited, next try ${fmtClock(backoff.until)}`, { ...extra, backoff });
     }
   });
 }
@@ -91,7 +97,7 @@ function refreshWeather(ctx) {
   return runSimple('weather', ctx, {
     cadence: CADENCE.weather, minManual: MANUAL_MIN_INTERVAL.weather, host: HOSTS.forecast, fetcher: fetchForecast,
     // Cached data from before the hourly strip existed: fetch once now rather than in 30 min.
-    forceDue: !!rec?.data && !Array.isArray(rec.data.hours) && ctx.now - (rec.attemptedAt || 0) > MIN,
+    forceDue: !!rec?.data && !rec.error && !Array.isArray(rec.data.hours) && ctx.now - (rec.attemptedAt || 0) > MIN,
   });
 }
 
@@ -101,11 +107,39 @@ function refreshOutlook(ctx) {
   });
 }
 
-/** Fetch every configured calendar; a failing one keeps its last events and reports its error. */
+/**
+ * Fetch every configured calendar, one at a time; a failing one keeps its last events and
+ * reports its error. A calendar Google rate-limits (429) is skipped until its back-off ends.
+ */
 async function fetchAllCalendars(cals, now, prev) {
   const today = dateStr(now);
   const prevById = new Map((prev?.calendars || []).map((c, i) => [c.id, { cal: c, index: i }]));
-  const results = await Promise.allSettled(cals.map((c) => fetchCalendar(c.url, now)));
+  const oldBackoff = (await get('calendarBackoff')) || {};
+  const backoff = {};
+  const results = [];
+  for (const c of cals) {
+    const id = hash(c.url);
+    const b = oldBackoff[id];
+    if (inBackoff(b, now)) {
+      backoff[id] = b;
+      results.push({ status: 'rejected', reason: new Error(`Rate limited by Google — next try ${fmtClock(b.until)}`) });
+      continue;
+    }
+    if (results.some((r) => r.fetched)) await new Promise((r) => setTimeout(r, 1000)); // no bursts
+    try {
+      results.push({ status: 'fulfilled', fetched: true, value: await fetchCalendar(c.url, now) });
+    } catch (e) {
+      let reason = e;
+      if (isThrottle(e)) {
+        backoff[id] = nextBackoff(b, e, now);
+        reason = new Error(`${e.message} — rate limited by Google, next try ${fmtClock(backoff[id].until)}`);
+      } else if (b) {
+        backoff[id] = b; // keep the failure count until a success
+      }
+      results.push({ status: 'rejected', fetched: true, reason });
+    }
+  }
+  await set({ calendarBackoff: backoff });
   const inputs = cals.map((c, i) => {
     const id = hash(c.url);
     const old = prevById.get(id);
@@ -131,11 +165,14 @@ function refreshCalendar(ctx) {
   const bad = cals.findIndex((c) => !isValidIcalUrl(c.url));
   if (bad >= 0) return saveError('calendar', `Calendar ${bad + 1}: the address does not look like a Google Calendar secret iCal address`);
   const rec = ctx.store.calendar;
-  // Calendar data is date-specific: refetch as soon as the day rolls over.
-  const stale = rec?.data && rec.data.today !== dateStr(ctx.now);
+  // Calendar data is date-specific: refetch once as soon as the day rolls over. If that
+  // attempt fails, the normal error retry interval applies (not every new tab).
+  const today = dateStr(ctx.now);
+  const stale = rec?.data && rec.data.today !== today;
+  const triedToday = rec?.attemptedAt && dateStr(rec.attemptedAt) === today;
   return runSimple('calendar', ctx, {
     cadence: CADENCE.calendar, minManual: MANUAL_MIN_INTERVAL.calendar, host: HOSTS.calendar,
-    configHash: hash(JSON.stringify(cals)), forceDue: stale && ctx.now - (rec.attemptedAt || 0) > MIN,
+    configHash: hash(JSON.stringify(cals)), forceDue: stale && !triedToday,
     fetcher: () => fetchAllCalendars(cals, ctx.now, rec?.data),
   });
 }
