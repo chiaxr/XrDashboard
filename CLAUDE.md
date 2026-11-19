@@ -128,6 +128,9 @@ spacing, colours and type from it, not values.
   variables (never in the repo). Set `browser_specific_settings.gecko.id`. Follow any
   current AMO manifest requirements that `web-ext lint` reports.
 - Add a `.gitignore` covering `web-ext-artifacts/`, `.env`, and any local key files.
+- Self-updating: `gecko.update_url` → `updates.json` on `main` (raw.githubusercontent.com); signed
+  `.xpi`s live on GitHub Releases. Publish with `npm run release -- <version>`
+  (`scripts/release.mjs`). This is Firefox's own update check, not an extension network call.
 
 ## Build order (each step runnable and checked before the next)
 

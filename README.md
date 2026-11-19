@@ -109,13 +109,30 @@ doesn't appear on addons.mozilla.org):
    *Install Add-on From File…*. Then open Options and enter your keys. Firefox asks once
    whether to keep the new-tab override. Choose *Keep changes*.
 
-### Updating
+### Updating (automatic)
 
-1. Bump `version` in `manifest.json`. AMO rejects a version number it has already signed.
-2. Run `npm test` and `npx web-ext lint`.
-3. Run `npm run sign` again and install the new `.xpi` over the old
-   one. Settings and cached data survive because the add-on ID
-   (`newtab-dashboard@xrdashboard`) stays the same.
+Installed copies update themselves. The manifest's `update_url` points at
+[`updates.json`](updates.json) on `main`, which lists each signed `.xpi` (hosted on GitHub
+Releases) with its SHA-256 hash. Firefox checks it about once a day; to check now, go to
+`about:addons` → ⚙ → *Check for Updates*. Settings and cached data survive updates because the
+add-on ID (`newtab-dashboard@xrdashboard`) stays the same.
+
+To publish a new version (needs a clean `main`, `gh` logged in, and AMO credentials):
+
+```bash
+npm run release -- 1.0.4
+```
+
+This bumps `manifest.json`, runs the tests and lint, pushes `main`, signs with AMO, creates the
+GitHub release `v1.0.4` with the `.xpi`, then adds it to `updates.json` and pushes again. AMO
+rejects a version it has already signed, so every release needs a new number. Leave out the
+version to release the one already in `manifest.json`. If a step fails, fix it and re-run: an
+already-signed `.xpi` or existing release is reused.
+
+The `.xpi` and `updates.json` are public. They hold only code: keys and iCal addresses
+stay in `storage.local`.
+
+Versions before 1.0.3 don't have `update_url`. Install 1.0.3 or later by hand once, as above.
 
 ## Security notes
 
