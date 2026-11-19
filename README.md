@@ -73,6 +73,12 @@ the dashboard. Weather works without any keys. The rest is set up in Options
    option names follow their order in Notion), then the earliest due date.
 4. **Alpha Vantage** free API key (VWRA).
 
+The page is drawn at 120% by default. To change that, edit `--ui-scale` in `newtab.css`, or
+use Firefox's own zoom (Cmd +/−) on top.
+
+Top-right buttons: sun/moon switches light and dark mode (remembered), the eye toggles the
+privacy blur, and the gear opens Options.
+
 Shortcuts: press `P`, or click the eye button, to blur the ticker, schedule and to-dos.
 `←`/`→` (or the ‹ Today › buttons) step the schedule through days, from a week back to 30
 days ahead. Keys are ignored while you type in a field or hold Cmd/Ctrl/Alt.
@@ -83,24 +89,22 @@ Release Firefox only installs signed add-ons. Sign as **unlisted** (self-distrib
 doesn't appear on addons.mozilla.org):
 
 1. Create AMO API credentials at <https://addons.mozilla.org/developers/addon/api/key/>.
-2. Export them in your shell. Never commit them, and keep them out of this folder:
+2. Export them in your shell, or keep them in a local `.env` file in this folder. `.env`
+   is git-ignored and listed in `web-ext-config.mjs` `ignoreFiles`, so it is never committed
+   or packaged. To save credentials you've already exported, run this in the same shell:
 
    ```bash
-   export WEB_EXT_API_KEY="user:12345:678"
+   (umask 077; printf "WEB_EXT_API_KEY='%s'\nWEB_EXT_API_SECRET='%s'\n" "$WEB_EXT_API_KEY" "$WEB_EXT_API_SECRET" > .env)
    ```
 
-   ```bash
-   export WEB_EXT_API_SECRET="…"
-   ```
-
-3. Sign:
+3. Sign (`npm run sign` loads `.env` if it exists):
 
    ```bash
-   npx web-ext sign --channel=unlisted
+   npm run sign
    ```
 
    The signed `.xpi` lands in `web-ext-artifacts/` (git-ignored). Mozilla receives the
-   source for review. This is why keys must only ever live in `storage.local`.
+   package for review. This is why keys must only ever live in `storage.local`.
 4. Install it: drag the `.xpi` onto a Firefox window, or `about:addons` → ⚙ →
    *Install Add-on From File…*. Then open Options and enter your keys. Firefox asks once
    whether to keep the new-tab override. Choose *Keep changes*.
@@ -109,7 +113,7 @@ doesn't appear on addons.mozilla.org):
 
 1. Bump `version` in `manifest.json`. AMO rejects a version number it has already signed.
 2. Run `npm test` and `npx web-ext lint`.
-3. Run `npx web-ext sign --channel=unlisted` again and install the new `.xpi` over the old
+3. Run `npm run sign` again and install the new `.xpi` over the old
    one. Settings and cached data survive because the add-on ID
    (`newtab-dashboard@xrdashboard`) stays the same.
 

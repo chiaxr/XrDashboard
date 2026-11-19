@@ -9,7 +9,7 @@
     "lint": "npx --yes web-ext@10 lint",
     "start": "npx --yes web-ext@10 run",
     "build": "npx --yes web-ext@10 build --overwrite-dest",
-    "sign": "npx --yes web-ext@10 sign --channel=unlisted"
+    "sign": "set -a; [ -f .env ] && . ./.env; set +a; npx --yes web-ext@10 sign --channel=unlisted"
   },
   "license": "UNLICENSED"
 }

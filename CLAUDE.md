@@ -77,8 +77,15 @@ format: `{{x}}` holes are filled from `renderVals()` in its `<script>`, `<sc-for
 a loop and `<sc-if>` a conditional. The numbers in it are **sample data**; take layout,
 spacing, colours and type from it, not values.
 
+- Default size is 120% (`--ui-scale: 1.2` in `newtab.css`, applied with CSS `zoom` on `.page`), so
+  the mockup's px values are scaled up. Media queries see the unscaled width: multiply
+  breakpoints by the scale (720px → 864px).
 - Header: date/time (live 12-hour clock with SGT beside it), location + current temp, counts,
-  privacy button.
+  then three buttons: light/dark toggle, privacy, Settings (opens Options).
+- Themes: dark (design B, default) and light, persisted in `ui.theme`. All colours are CSS
+  variables in `newtab.css` (`:root` and `:root[data-theme="light"]`); never hard-code a colour in
+  JS (SVG colours go in `style`, since presentation attributes can't use `var()`).
+  `theme-init.js` applies the last theme from a `localStorage` mirror before first paint.
 - Top row (one line): hourly weather strip on the left — a summary ("Rain from 15:00" /
   "Dry next 24 h", temperature range) then 24 hourly chips (time, day/night icon, °C,
   rain chance ≥ 20%) that **scroll horizontally** (`flex-wrap: nowrap; overflow-x: auto`)
@@ -86,7 +93,8 @@ spacing, colours and type from it, not values.
   sparkline from `vwraHistory`) on the right. On narrow windows VWRA wraps below the strip.
   The weather strip is not blurred in privacy mode. (The Twelve Data watchlist was removed.)
 - Three panels: Schedule (hour grid, events, dashed free gaps with suggestions, orange
-  now-line; ‹ Today › buttons and ←/→ keys to view other days; tomorrow by default from
+  now-line; ‹ Today › buttons and ←/→ keys to view other days, kept on the title line — short
+  title "Schedule · Tomorrow", full date in the line below; tomorrow by default from
   18:00), Weather (segmented toggle **16 days / Monthly**, choice persisted; Monthly is a
   Mon–Sun calendar of six weeks: daily forecast cells, then days tinted by the weekly
   anomaly, plus a weekly summary column and three season cards), To-do (grouped, footer stats).

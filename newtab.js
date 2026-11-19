@@ -62,21 +62,21 @@ function sourceState(rec, configured, { setup, name }) {
 function wxIcon(kind) {
   const base = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' };
   switch (kind) {
-    case 'sun': return s('svg', { ...base, stroke: '#E3B341' }, s('circle', { cx: 12, cy: 12, r: 4 }),
+    case 'sun': return s('svg', { ...base, style: { stroke: 'var(--sun)' } }, s('circle', { cx: 12, cy: 12, r: 4 }),
       s('path', { d: 'M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41' }));
-    case 'partly': return s('svg', { ...base, stroke: '#C9D3DD' },
+    case 'partly': return s('svg', { ...base, style: { stroke: 'var(--text-2)' } },
       s('path', { d: 'M12 2v2M4.93 4.93l1.41 1.41M20 12h2M19.07 4.93l-1.41 1.41M15.95 12.65a4 4 0 0 0-5.93-4.61' }),
       s('path', { d: 'M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z' }));
-    case 'moon': return s('svg', { ...base, stroke: '#C9D3DD' }, s('path', { d: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z' }));
-    case 'moon-partly': return s('svg', { ...base, stroke: '#C9D3DD' },
+    case 'moon': return s('svg', { ...base, style: { stroke: 'var(--text-2)' } }, s('path', { d: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z' }));
+    case 'moon-partly': return s('svg', { ...base, style: { stroke: 'var(--text-2)' } },
       s('path', { d: 'M10.1 9A6 6 0 0 1 16 4a4 4 0 0 0 6 6 6 6 0 0 1-3 5.2' }),
       s('path', { d: 'M13 16a3 3 0 1 1 0 6H7a5 5 0 1 1 4.9-6Z' }));
-    case 'rain': return s('svg', { ...base, stroke: '#79B8FF' },
+    case 'rain': return s('svg', { ...base, style: { stroke: 'var(--blue)' } },
       s('path', { d: 'M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24' }), s('path', { d: 'M16 14v6M8 14v6M12 16v6' }));
-    case 'snow': return s('svg', { ...base, stroke: '#C9D3DD' },
+    case 'snow': return s('svg', { ...base, style: { stroke: 'var(--text-2)' } },
       s('path', { d: 'M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24' }),
       s('path', { d: 'M8 15h.01M8 19h.01M12 17h.01M12 21h.01M16 15h.01M16 19h.01' }));
-    default: return s('svg', { ...base, stroke: '#9AA4AF' }, s('path', { d: 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z' }));
+    default: return s('svg', { ...base, style: { stroke: 'var(--muted)' } }, s('path', { d: 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z' }));
   }
 }
 
@@ -92,10 +92,10 @@ function sparkline({ values, width, height, color, stretch = false, label, xLabe
       const y = height - pad - ((v - min) / span) * (height - 2 * pad);
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(' ');
-    svg.appendChild(s('polyline', { points: pts, fill: 'none', stroke: color, 'stroke-width': 1.5, 'vector-effect': stretch ? 'non-scaling-stroke' : null }));
+    svg.appendChild(s('polyline', { points: pts, fill: 'none', style: { stroke: color }, 'stroke-width': 1.5, 'vector-effect': stretch ? 'non-scaling-stroke' : null }));
   }
   if (xLabels) {
-    const t = { fill: '#9AA4AF', 'font-size': 9, 'font-family': 'ui-monospace, Menlo, monospace', y: height + 12 };
+    const t = { style: { fill: 'var(--muted)' }, 'font-size': 9, 'font-family': 'ui-monospace, Menlo, monospace', y: height + 12 };
     svg.appendChild(s('text', { ...t, x: 0 }, xLabels[0]));
     svg.appendChild(s('text', { ...t, x: width, 'text-anchor': 'end' }, xLabels[1]));
   }
@@ -132,9 +132,20 @@ function renderHeader(now) {
   }
   $('hdr-counts').textContent = parts.join(' · ');
 
+  applyTheme(ui().theme);
   const priv = ui().privacy;
   document.body.classList.toggle('privacy', priv);
   $('privacy').setAttribute('aria-pressed', String(priv));
+}
+
+function applyTheme(theme) {
+  const light = theme === 'light';
+  if (light) document.documentElement.dataset.theme = 'light';
+  else delete document.documentElement.dataset.theme;
+  const btn = $('theme');
+  btn.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode');
+  btn.title = light ? 'Dark mode' : 'Light mode';
+  try { localStorage.setItem('theme', light ? 'light' : 'dark'); } catch { /* ignore */ }
 }
 
 function renderBanner() {
@@ -200,7 +211,7 @@ function renderVwra(now) {
       h('span', { class: 'xs muted' }, statsLine)),
     closes30.length >= 2
       ? sparkline({
-        values: closes30, width: 210, height: 44, color: '#9AA4AF',
+        values: closes30, width: 210, height: 44, color: 'var(--muted)',
         label: 'VWRA closing prices, last 30 trading days',
         xLabels: [fmtShortDate(last30[0].date), fmtShortDate(last30[last30.length - 1].date)],
       })
@@ -316,8 +327,11 @@ function renderSchedule(now, model) {
   const today = model.today;
   const date = scheduleDate(model);
   const diff = daysBetween(today, date);
-  const rel = diff === 0 ? '' : diff === 1 ? 'Tomorrow · ' : diff === -1 ? 'Yesterday · ' : '';
-  $('sched-title').textContent = diff === 0 ? 'Schedule · Today' : `Schedule · ${rel}${fmtDayMonth(date)}`;
+  // Short title so the day buttons stay on the same line; the full date goes in the line below.
+  const rel = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : diff === -1 ? 'Yesterday' : fmtDayMonth(date);
+  const dateNote = diff === 1 || diff === -1 ? `${fmtDayMonth(date)} · ` : '';
+  $('sched-title').textContent = `Schedule · ${rel}`;
+  $('sched-title').title = fmtDayMonth(date);
 
   const { from, to } = calendarRange(rec.data, today);
   nav.hidden = false;
@@ -349,9 +363,9 @@ function renderSchedule(now, model) {
       const left = model.todayEvents.filter((e) => !e.allDay && e.endMin > model.nowMin);
       tonight = left.length ? ` · Tonight: ${left.map((e) => `${e.title} ${fmtHM(e.startMin)}`).join(', ')}` : '';
     }
-    setNext(`${count} · ${fmtHours(free)} free 08–20${tonight}`);
+    setNext(`${dateNote}${count} · ${fmtHours(free)} free 08–20${tonight}`);
   } else {
-    setNext(`${dayEvents.length || 'No'} event${dayEvents.length === 1 ? '' : 's'}`);
+    setNext(`${dateNote}${dayEvents.length || 'No'} event${dayEvents.length === 1 ? '' : 's'}`);
   }
 
   const grid = h('div', { class: 'grid' });
@@ -421,7 +435,7 @@ function renderSchedule(now, model) {
 // ── weather ─────────────────────────────────────────────────────────────
 
 function anomalyBar(d) {
-  const cold = '#79B8FF', warm = '#F0883E', flat = '#C9D3DD';
+  const cold = 'var(--blue)', warm = 'var(--orange)', flat = 'var(--text-2)';
   if (d == null) return { style: { left: '48.5%', width: '3%' }, color: flat, text: '–' };
   const w = Math.min((Math.abs(d) / 3) * 50, 50);
   if (Math.abs(d) < 0.25) return { style: { left: '48.5%', width: '3%' }, color: flat, text: '±0°' };
@@ -462,12 +476,12 @@ function renderWeather(now) {
       nodes.push(h('div', { class: 'wx-list' },
         h('h3', null, `NEXT ${list.length} DAYS · °C`),
         list.map((d, i) => h('div', { class: 'wx-day' },
-          h('span', { style: { color: i === 0 ? '#E6EDF3' : '#9AA4AF' } }, i === 0 ? 'Today' : fmtDayLabel(d.date)),
+          h('span', { style: { color: i === 0 ? 'var(--text)' : 'var(--muted)' } }, i === 0 ? 'Today' : fmtDayLabel(d.date)),
           h('span', { class: 'icon', title: describeCode(d.code).text }, wxIcon(describeCode(d.code).kind)),
           h('span', { class: 'lo' }, deg(d.lo)),
           h('span', { class: 'bar' }, h('span', {
             class: 'fill',
-            style: { background: '#D29922', left: `${(((d.lo - lo0) / span) * 100).toFixed(1)}%`, width: `${Math.max(2, ((d.hi - d.lo) / span) * 100).toFixed(1)}%` },
+            style: { background: 'var(--bar)', left: `${(((d.lo - lo0) / span) * 100).toFixed(1)}%`, width: `${Math.max(2, ((d.hi - d.lo) / span) * 100).toFixed(1)}%` },
           })),
           h('span', null, deg(d.hi))))));
     }
@@ -480,7 +494,8 @@ function renderWeather(now) {
 function anomalyTint(d) {
   if (d == null || Math.abs(d) < 0.25) return null;
   const a = (0.08 + 0.22 * Math.min(Math.abs(d) / 3, 1)).toFixed(2);
-  return d > 0 ? `rgba(240, 136, 62, ${a})` : `rgba(121, 184, 255, ${a})`;
+  const pct = Math.round(a * 100);
+  return `color-mix(in srgb, var(${d > 0 ? '--orange' : '--blue'}) ${pct}%, transparent)`;
 }
 
 /**
@@ -541,8 +556,8 @@ function renderOutlook(today) {
     h('h3', null, 'NEXT 6 WEEKS · DAILY FORECAST, THEN WEEKLY TREND'),
     h('div', { class: 'wx-cal' }, head, cells),
     h('div', { class: 'wx-key' },
-      h('span', null, h('span', { class: 'sw', style: { background: 'rgba(240, 136, 62, 0.3)' } }), 'warmer than usual'),
-      h('span', null, h('span', { class: 'sw', style: { background: 'rgba(121, 184, 255, 0.3)' } }), 'colder than usual'),
+      h('span', null, h('span', { class: 'sw', style: { background: 'color-mix(in srgb, var(--orange) 30%, transparent)' } }), 'warmer than usual'),
+      h('span', null, h('span', { class: 'sw', style: { background: 'color-mix(in srgb, var(--blue) 30%, transparent)' } }), 'colder than usual'),
       h('span', null, 'shaded days are trends, not forecasts')),
     blocked,
     months.length ? h('h3', { style: { margin: '12px 0 4px' } }, 'SEASON · VS USUAL') : null,
@@ -581,7 +596,7 @@ function renderTodos(now, model) {
   }
   statsEl.hidden = false;
   const { groups, later, placements } = model;
-  const RED = '#F85149', BLUE = '#79B8FF', MUTED = '#9AA4AF';
+  const RED = 'var(--down)', BLUE = 'var(--blue)', MUTED = 'var(--muted)';
   const groupColor = { overdue: RED, prep: BLUE, today: MUTED, week: MUTED };
 
   const item = (t, kind) => {
@@ -625,7 +640,7 @@ function renderTodos(now, model) {
     h('div', null, h('span', { class: 'v' }, fmtHours(st.due)), h('span', { class: 'k' }, 'tasks due today')),
     h('div', null, h('span', { class: 'v' }, fmtHours(st.free)), h('span', { class: 'k' }, noCal ? 'free until 20:00' : 'free between events')),
     h('div', null,
-      h('span', { class: 'v', style: { color: st.fits ? '#3FB950' : (st.over > 60 ? '#F85149' : '#D29922') } },
+      h('span', { class: 'v', style: { color: st.fits ? 'var(--up)' : (st.over > 60 ? 'var(--down)' : 'var(--amber)') } },
         st.fits ? 'Fits' : `Over by ${fmtHours(st.over)}`),
       h('span', { class: 'k' }, "today's load")));
 }
@@ -719,6 +734,8 @@ async function init() {
   });
 
   $('privacy').addEventListener('click', () => setUi({ privacy: !ui().privacy }));
+  $('settings').addEventListener('click', () => openOptions());
+  $('theme').addEventListener('click', () => setUi({ theme: ui().theme === 'light' ? 'dark' : 'light' }));
   $('view-days').addEventListener('click', () => setUi({ weatherView: 'days' }));
   $('view-month').addEventListener('click', () => setUi({ weatherView: 'month' }));
   $('day-prev').addEventListener('click', () => shiftDay(-1));

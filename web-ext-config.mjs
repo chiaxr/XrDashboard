@@ -8,6 +8,10 @@ export default {
     'package.json',
     'package-lock.json',
     'web-ext-config.mjs',
+    // Local signing credentials: never packaged (Mozilla receives the package when signing).
+    '.env',
+    '.env.*',
+    'web-ext-artifacts',
   ],
   build: { overwriteDest: true },
 };
