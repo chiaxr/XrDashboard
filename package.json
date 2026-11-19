@@ -1,0 +1,15 @@
+{
+  "name": "newtab-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal Firefox new-tab dashboard (MV3 WebExtension).",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/",
+    "lint": "npx --yes web-ext@10 lint",
+    "start": "npx --yes web-ext@10 run",
+    "build": "npx --yes web-ext@10 build --overwrite-dest",
+    "sign": "npx --yes web-ext@10 sign --channel=unlisted"
+  },
+  "license": "UNLICENSED"
+}

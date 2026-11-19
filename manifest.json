@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "New Tab Dashboard",
+  "version": "1.0.0",
+  "description": "Personal new-tab page: markets, Philadelphia weather, today's calendar and Notion to-dos.",
+  "icons": {
+    "48": "icons/icon.svg",
+    "96": "icons/icon.svg"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "newtab-dashboard@xrdashboard",
+      "strict_min_version": "142.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "background": {
+    "scripts": ["background.js"],
+    "type": "module"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "permissions": ["storage", "alarms"],
+  "host_permissions": [
+    "https://api.open-meteo.com/*",
+    "https://seasonal-api.open-meteo.com/*",
+    "https://calendar.google.com/*",
+    "https://api.notion.com/*",
+    "https://www.alphavantage.co/*"
+  ]
+}

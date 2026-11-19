@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New Tab Dashboard — Options</title>
+<link rel="stylesheet" href="options.css">
+<script type="module" src="options.js"></script>
+</head>
+<body>
+<main>
+  <h1>New Tab Dashboard</h1>
+  <p class="muted">Keys and addresses are stored only in this browser (<code>storage.local</code>). They are never synced and only sent to the service they belong to.</p>
+
+  <section id="perm-section" class="card" hidden>
+    <h2>Site access</h2>
+    <p>Firefox has not granted access to the data hosts yet. The dashboard can't fetch anything until you allow it.</p>
+    <button type="button" id="grant">Grant access</button>
+    <p id="perm-hosts" class="muted small"></p>
+  </section>
+
+  <form id="form" autocomplete="off" novalidate>
+    <section class="card">
+      <h2>Google Calendars</h2>
+      <p class="muted small">For each calendar: Google Calendar → Settings → the calendar → Integrate calendar → <em>Secret address in iCal format</em>. Read-only. Up to 8 calendars; their events are merged into one schedule.</p>
+      <div id="cal-list" class="cal-list"></div>
+      <button type="button" id="add-cal">+ Add calendar</button>
+    </section>
+
+    <section class="card">
+      <h2>Notion to-dos</h2>
+      <label for="notionToken">Internal integration token</label>
+      <div class="secret">
+        <input id="notionToken" type="password" spellcheck="false" placeholder="ntn_…">
+        <button type="button" class="reveal" data-for="notionToken">Show</button>
+      </div>
+      <p class="muted small">Create an internal integration with <strong>Read content</strong> only, then share just the to-do database with it.</p>
+      <label for="notionDatabase">Database URL or ID</label>
+      <input id="notionDatabase" type="text" spellcheck="false" placeholder="https://www.notion.so/…?v=…">
+      <fieldset>
+        <legend>Property names</legend>
+        <div class="grid2">
+          <label>Title <input id="prop-title" type="text" spellcheck="false"></label>
+          <label>Status (status, select or checkbox) <input id="prop-status" type="text" spellcheck="false"></label>
+          <label>Status values that mean finished — hidden from the dashboard (comma-separated) <input id="prop-doneValues" type="text" spellcheck="false" placeholder="Done"><span id="status-options" class="hint"></span></label>
+          <label>Due (date) <input id="prop-due" type="text" spellcheck="false"></label>
+          <label>Estimate in minutes (number) <input id="prop-estimate" type="text" spellcheck="false"></label>
+          <label>Related event (text) <input id="prop-related" type="text" spellcheck="false"></label>
+          <label>Priority (select, status or number; optional) <input id="prop-priority" type="text" spellcheck="false"></label>
+        </div>
+      </fieldset>
+    </section>
+
+    <section class="card">
+      <h2>VWRA</h2>
+      <label for="alphaVantageKey">Alpha Vantage API key (VWRA)</label>
+      <div class="secret">
+        <input id="alphaVantageKey" type="password" spellcheck="false">
+        <button type="button" class="reveal" data-for="alphaVantageKey">Show</button>
+      </div>
+      <p class="muted small">Free tier: 25 calls/day. The dashboard uses at most 15 (quote about every 2 h on LSE trading days, history backfilled once).</p>
+    </section>
+
+    <div class="actions">
+      <button type="submit" id="save" class="primary">Save</button>
+      <button type="button" id="refresh">Refresh now</button>
+      <span id="msg" role="status" aria-live="polite"></span>
+    </div>
+  </form>
+
+  <section class="card">
+    <h2>Status</h2>
+    <table id="status"><tbody></tbody></table>
+  </section>
+</main>
+</body>
+</html>

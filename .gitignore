@@ -1,0 +1,9 @@
+web-ext-artifacts/
+node_modules/
+.env
+.env.*
+*.key
+*.secret
+secrets.json
+.amo-upload-uuid
+.DS_Store

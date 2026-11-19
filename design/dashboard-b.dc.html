@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New tab — B · Dense</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#79B8FF}a:hover{color:#B3D6FF}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #0D1117; color: #E6EDF3; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif; padding: 20px 24px 16px">
+  <div style="max-width: 1392px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px">
+
+    <header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; font-family: 'SF Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums">
+      <h1 style="margin: 0; font-size: 15px; font-weight: 600">Thu 19 Nov 2026 <span style="color: #9AA4AF">·</span> 08:42 <span style="color: #9AA4AF">EST</span></h1>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; font-size: 12px; color: #9AA4AF">
+        <span>Philadelphia · 4°C partly cloudy</span>
+        <span>5 events · 7 open to-dos</span>
+        <button type="button" aria-label="Toggle privacy blur" style="min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; background: #161B22; border: 1px solid #2A313C; border-radius: 8px; color: #E6EDF3; font: inherit; cursor: pointer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          P
+        </button>
+      </div>
+    </header>
+
+    <section style="display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; font-family: 'SF Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums" aria-label="Markets">
+
+      <div style="flex: 0 1 auto; min-width: 0; background: #161B22; border: 1px solid #2A313C; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 20px">
+        <div style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+          <div style="display: flex; align-items: baseline; gap: 8px">
+            <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.04em">VWRA</span>
+            <span style="font-size: 11px; color: #9AA4AF">LSE · USD · 18 Nov close</span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <span style="font-size: 28px; line-height: 1">181.28</span>
+            <span style="font-size: 13px; color: #F85149">▼ 0.49% (−0.90)</span>
+          </div>
+          <span style="font-size: 11px; color: #9AA4AF">50-day avg 190.83 <span style="color: #F85149">(−5.0%)</span> · 30-day range 181.28–193.72</span>
+        </div>
+        <svg width="210" height="58" viewBox="0 0 210 58" role="img" aria-label="VWRA closing prices, last 30 trading days">
+          <polyline points="{{vwraPoints}}" fill="none" stroke="#9AA4AF" stroke-width="1.5"></polyline>
+          <text x="0" y="56" fill="#9AA4AF" font-size="9" font-family="ui-monospace, Menlo, monospace">8 Oct</text>
+          <text x="210" y="56" fill="#9AA4AF" font-size="9" text-anchor="end" font-family="ui-monospace, Menlo, monospace">18 Nov</text>
+        </svg>
+      </div>
+
+      <ul style="flex: 1 1 300px; min-width: 0; list-style: none; margin: 0; padding: 0 0 4px; display: flex; flex-wrap: nowrap; gap: 10px; overflow-x: auto" aria-label="Other markets">
+        <sc-for list="{{others}}" as="s" hint-placeholder-count="5">
+          <li style="flex: 0 0 150px; box-sizing: border-box; background: #161B22; border: 1px solid #2A313C; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: #9AA4AF">{{s.sym}}</span>
+            <span style="font-size: 15px">{{s.price}}</span>
+            <span style="font-size: 11px; color: {{s.color}}">{{s.arrow}} {{s.ch}}</span>
+            <svg width="100%" height="20" viewBox="0 0 100 28" preserveAspectRatio="none" role="img" aria-label="{{s.sym}} 30-day trend"><polyline points="{{s.points}}" fill="none" stroke="{{s.color}}" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
+          </li>
+        </sc-for>
+      </ul>
+
+    </section>
+
+    <main style="display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch">
+
+      <section style="flex: 1 1 380px; min-width: 0; background: #161B22; border: 1px solid #2A313C; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px" aria-label="Today's schedule">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA4AF">Schedule</h2>
+          <span style="font-size: 12px; color: #9AA4AF">Next: Team standup in 18 min</span>
+        </div>
+        <div style="position: relative; height: 572px; font-family: 'SF Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; filter: {{blur}}">
+          <sc-for list="{{hours}}" as="h" hint-placeholder-count="13">
+            <div style="position: absolute; left: 0; right: 0; top: {{h.top}}px; display: flex; align-items: flex-start; gap: 8px">
+              <span style="width: 40px; font-size: 11px; color: #9AA4AF; transform: translateY(-7px)">{{h.label}}</span>
+              <span style="flex: 1; border-top: 1px solid #222A35"></span>
+            </div>
+          </sc-for>
+          <sc-for list="{{gaps}}" as="g" hint-placeholder-count="4">
+            <div style="position: absolute; left: 52px; right: 4px; top: {{g.top}}px; height: {{g.h}}px; box-sizing: border-box; border: 1px dashed #3B4552; border-radius: 6px; padding: 4px 8px; display: flex; flex-direction: column; gap: 2px; overflow: hidden">
+              <span style="font-size: 11px; color: #9AA4AF">{{g.free}} free</span>
+              <span style="font-size: 12px; color: #79B8FF">→ {{g.fit}}</span>
+            </div>
+          </sc-for>
+          <sc-for list="{{events}}" as="e" hint-placeholder-count="5">
+            <div style="position: absolute; left: 52px; right: 4px; top: {{e.top}}px; height: {{e.h}}px; box-sizing: border-box; background: {{e.bg}}; border-radius: 6px; padding: 3px 8px; display: flex; gap: 10px; align-items: flex-start; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif">
+              <span style="font-size: 12px; font-weight: 600; white-space: nowrap">{{e.title}}</span>
+              <span style="font-size: 11px; color: #C9D3DD; white-space: nowrap">{{e.range}} · {{e.meta}}</span>
+            </div>
+          </sc-for>
+          <div style="position: absolute; left: 44px; right: 0; top: {{nowTop}}px; display: flex; align-items: center">
+            <span style="width: 8px; height: 8px; border-radius: 4px; background: #F0883E"></span>
+            <span style="flex: 1; height: 2px; background: #F0883E"></span>
+          </div>
+        </div>
+      </section>
+
+      <section style="flex: 1 1 380px; min-width: 0; background: #161B22; border: 1px solid #2A313C; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px" aria-label="Weather">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px">
+          <h2 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA4AF">Weather · Philadelphia</h2>
+          <div style="display: flex; border: 1px solid #2A313C; border-radius: 8px; overflow: hidden" role="group" aria-label="Forecast range">
+            <button type="button" aria-pressed="{{showDays}}" onClick="{{pickDays}}" style="min-height: 44px; padding: 0 14px; border: 0; background: {{daysBg}}; color: {{daysFg}}; font: 600 12px -apple-system, BlinkMacSystemFont, system-ui, sans-serif; cursor: pointer">16 days</button>
+            <button type="button" aria-pressed="{{showMonth}}" onClick="{{pickMonth}}" style="min-height: 44px; padding: 0 14px; border: 0; border-left: 1px solid #2A313C; background: {{monthBg}}; color: {{monthFg}}; font: 600 12px -apple-system, BlinkMacSystemFont, system-ui, sans-serif; cursor: pointer">Monthly</button>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+          <span style="font-size: 44px; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums">4°</span>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 18px; font-size: 12px; color: #9AA4AF; font-family: 'SF Mono', ui-monospace, Menlo, monospace">
+            <span>Partly cloudy</span><span>Feels 1°</span>
+            <span>H 9° · L 2°</span><span>Rain 10%</span>
+            <span>Wind 14 km/h NW</span><span>Sunset 16:39</span>
+          </div>
+        </div>
+
+        <sc-if value="{{showDays}}" hint-placeholder-val="{{true}}">
+          <div style="display: flex; flex-direction: column; gap: 3px; font-family: 'SF Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums">
+            <h3 style="margin: 0 0 4px; font-size: 11px; font-weight: 600; color: #9AA4AF">NEXT 16 DAYS · °C</h3>
+            <sc-for list="{{days}}" as="d" hint-placeholder-count="16">
+              <div style="display: grid; grid-template-columns: 64px 18px 26px 1fr 26px; align-items: center; gap: 8px; height: 22px; font-size: 12px">
+                <span style="color: {{d.labelColor}}">{{d.label}}</span>
+                <span style="display: flex">
+                  <sc-if value="{{d.isSun}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E3B341" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg></sc-if>
+                  <sc-if value="{{d.isCloud}}" hint-placeholder-val="{{true}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA4AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg></sc-if>
+                  <sc-if value="{{d.isPartly}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9D3DD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v2M4.93 4.93l1.41 1.41M20 12h2M19.07 4.93l-1.41 1.41M15.95 12.65a4 4 0 0 0-5.93-4.61"></path><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"></path></svg></sc-if>
+                  <sc-if value="{{d.isRain}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#79B8FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24"></path><path d="M16 14v6M8 14v6M12 16v6"></path></svg></sc-if>
+                </span>
+                <span style="text-align: right; color: #9AA4AF">{{d.lo}}</span>
+                <span style="position: relative; height: 6px; background: #222A35; border-radius: 3px">
+                  <span style="position: absolute; top: 0; height: 6px; border-radius: 3px; background: #D29922; left: {{d.left}}%; width: {{d.width}}%"></span>
+                </span>
+                <span>{{d.hi}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{showMonth}}" hint-placeholder-val="{{false}}">
+          <div style="display: flex; flex-direction: column; gap: 4px; font-family: 'SF Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums">
+            <h3 style="margin: 0 0 4px; font-size: 11px; font-weight: 600; color: #9AA4AF">NEXT 6 WEEKS · AVG HIGH / LOW · VS USUAL</h3>
+            <sc-for list="{{weeks}}" as="w" hint-placeholder-count="6">
+              <div style="display: grid; grid-template-columns: 104px 70px 1fr 56px 56px; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid #222A35; font-size: 12px">
+                <span style="color: #C9D3DD">{{w.wk}}</span>
+                <span>{{w.hi}}° / <span style="color: #9AA4AF">{{w.lo}}°</span></span>
+                <span style="position: relative; height: 6px; background: #222A35; border-radius: 3px">
+                  <span style="position: absolute; left: 50%; top: -3px; width: 1px; height: 12px; background: #4A5462"></span>
+                  <span style="position: absolute; top: 0; height: 6px; border-radius: 3px; {{w.bar}}; background: {{w.color}}"></span>
+                </span>
+                <span style="text-align: right; color: {{w.color}}">{{w.delta}}</span>
+                <span style="text-align: right; color: #9AA4AF">{{w.rain}}</span>
+              </div>
+            </sc-for>
+            <h3 style="margin: 12px 0 4px; font-size: 11px; font-weight: 600; color: #9AA4AF">SEASON · VS USUAL</h3>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+              <sc-for list="{{months}}" as="m" hint-placeholder-count="3">
+                <div style="background: #0D1117; border: 1px solid #2A313C; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px">
+                  <span style="font-size: 11px; color: #9AA4AF">{{m.name}}</span>
+                  <span style="font-size: 16px; color: {{m.color}}">{{m.delta}}</span>
+                  <span style="font-size: 11px; color: #9AA4AF">{{m.rain}}</span>
+                </div>
+              </sc-for>
+            </div>
+            <span style="margin-top: 6px; font-size: 11px; color: #9AA4AF; font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif">Trends, not daily forecasts: ECMWF 46-day and seasonal outlooks via Open-Meteo.</span>
+          </div>
+        </sc-if>
+      </section>
+
+      <section style="flex: 1 1 380px; min-width: 0; background: #161B22; border: 1px solid #2A313C; border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px" aria-label="To-dos">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #9AA4AF">To-do</h2>
+          <span style="font-size: 12px; color: #9AA4AF">Notion · 08:38</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 16px; filter: {{blur}}">
+          <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <h3 style="margin: 0 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: {{g.color}}">{{g.name}} · {{g.count}}</h3>
+              <sc-for list="{{g.items}}" as="t" hint-placeholder-count="2">
+                <label style="display: grid; grid-template-columns: 18px 1fr auto; align-items: center; gap: 10px; min-height: 36px; border-bottom: 1px solid #222A35; cursor: pointer">
+                  <input type="checkbox" style="width: 15px; height: 15px; margin: 0; accent-color: #58A6FF">
+                  <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0">
+                    <span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{t.title}}</span>
+                    <sc-if value="{{t.hasNote}}" hint-placeholder-val="{{false}}"><span style="font-size: 11px; color: #79B8FF">{{t.note}}</span></sc-if>
+                  </span>
+                  <span style="font-size: 11px; font-family: 'SF Mono', ui-monospace, Menlo, monospace; color: {{t.metaColor}}; background: #0D1117; border: 1px solid #2A313C; border-radius: 4px; padding: 2px 6px; white-space: nowrap">{{t.meta}}</span>
+                </label>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top: auto; border-top: 1px solid #2A313C; padding-top: 10px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-family: 'SF Mono', ui-monospace, Menlo, monospace">
+          <div style="display: flex; flex-direction: column"><span style="font-size: 18px">2h 05m</span><span style="font-size: 11px; color: #9AA4AF">tasks due today</span></div>
+          <div style="display: flex; flex-direction: column"><span style="font-size: 18px">6h 30m</span><span style="font-size: 11px; color: #9AA4AF">free between events</span></div>
+          <div style="display: flex; flex-direction: column"><span style="font-size: 18px; color: #3FB950">Fits</span><span style="font-size: 11px; color: #9AA4AF">today's load</span></div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer style="display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 11px; color: #9AA4AF; font-family: 'SF Mono', ui-monospace, Menlo, monospace">
+      <span>● Google Calendar 08:40</span>
+      <span>● Notion 08:38</span>
+      <span>● Open-Meteo 08:40</span>
+      <span>● Alpha Vantage 08:35 · VWRA · 4 of 25 daily calls · history cached locally</span>
+      <span>● Twelve Data 08:41 · 15 min delayed</span>
+    </footer>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"privacy":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":940}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { view: 'days' };
+  }
+  renderVals() {
+    const blur = (this.props.privacy ?? false) ? 'blur(8px)' : 'none';
+    const up = '#3FB950', down = '#F85149', muted = '#9AA4AF';
+
+    const closes = [192.5, 193.5, 193.72, 193.12, 191.78, 191.48, 191.68, 191.58, 191.36, 192.28, 189.66, 189.6, 190.1, 191.3, 191.64, 191.28, 188.54, 189.7, 188.08, 190.64, 186.28, 184.98, 187.54, 186.9, 189.62, 189.5, 187.44, 186.14, 182.18, 181.28];
+    const cMin = Math.min(...closes), cMax = Math.max(...closes), cSpan = cMax - cMin;
+    const vx = (i) => (i * 206 / (closes.length - 1) + 2);
+    const vy = (v) => (44 - (v - cMin) / cSpan * 40);
+    const vwraPoints = closes.map((v, i) => vx(i).toFixed(1) + ',' + vy(v).toFixed(1)).join(' ');
+
+    const spark = (vals) => {
+      const min = Math.min(...vals), max = Math.max(...vals), span = (max - min) || 1;
+      return vals.map((v, i) => (i * 100 / (vals.length - 1)).toFixed(1) + ',' + (26 - (v - min) / span * 24).toFixed(1)).join(' ');
+    };
+    const others = [
+      ['SPY', '589.10', '−0.31%', false, [580, 584, 583, 587, 590, 592, 591, 594, 593, 591, 590.9, 589.1]],
+      ['QQQ', '512.37', '−0.58%', false, [500, 506, 503, 509, 514, 518, 516, 519, 517, 516, 515.4, 512.4]],
+      ['VT', '128.06', '+0.12%', true, [124, 124.6, 124.2, 125.3, 126, 125.8, 126.7, 127.2, 127.1, 127.6, 127.9, 128.1]],
+      ['IWM', '231.45', '+0.87%', true, [226, 225, 227, 228.5, 227.8, 229, 230.2, 229.4, 230, 229.8, 229.5, 231.5]],
+      ['BTC/USD', '91,420', '−1.24%', false, [95000, 94100, 94800, 93600, 93900, 92800, 93400, 92500, 92900, 92100, 92560, 91420]]
+    ].map(([sym, price, ch, isUp, vals]) => ({ sym, price, ch, arrow: isUp ? '▲' : '▼', color: isUp ? up : down, points: spark(vals) }));
+
+    const H = 44, start = 8;
+    const y = (hh, mm) => ((hh - start) + mm / 60) * H;
+    const pad = (n) => String(n).padStart(2, '0');
+    const hours = [];
+    for (let h = start; h <= 20; h++) hours.push({ label: pad(h) + ':00', top: y(h, 0) });
+    const events = [
+      [9, 0, 9, 30, 'Team standup', 'Meet', '#1F3A5F'],
+      [11, 0, 12, 0, 'Design review', 'Room 3', '#1F3A5F'],
+      [13, 0, 14, 0, 'Lunch', 'Blocked', '#2B3240'],
+      [15, 30, 16, 0, '1:1 check-in', 'Meet', '#1F3A5F'],
+      [18, 30, 20, 0, 'Gym', 'Personal', '#1E4A33']
+    ].map(([h1, m1, h2, m2, title, meta, bg]) => ({
+      title, meta, bg, range: pad(h1) + ':' + pad(m1) + '–' + pad(h2) + ':' + pad(m2),
+      top: y(h1, m1) + 1, h: y(h2, m2) - y(h1, m1) - 2
+    }));
+    const gaps = [
+      [9, 30, 11, 0, '90m', 'Prepare slides (60m)'],
+      [12, 0, 13, 0, '60m', 'Reply to landlord (15m)'],
+      [14, 0, 15, 30, '90m', 'Book December flights (30m)'],
+      [16, 0, 18, 30, '2h 30m', 'Expense report (20m) · overdue']
+    ].map(([h1, m1, h2, m2, free, fit]) => ({ free, fit, top: y(h1, m1) + 2, h: y(h2, m2) - y(h1, m1) - 4 }));
+    const nowTop = y(8, 42) - 4;
+
+    const view = this.state.view;
+    const showDays = view === 'days', showMonth = view === 'month';
+    const onBg = '#2A313C', offBg = 'transparent';
+    const pickDays = () => this.setState({ view: 'days' });
+    const pickMonth = () => this.setState({ view: 'month' });
+
+    const lo0 = -3, span = 15;
+    const raw = [
+      ['Thu 19', 'partly', 2, 9], ['Fri 20', 'cloud', 1, 7], ['Sat 21', 'rain', 5, 11], ['Sun 22', 'rain', 3, 8],
+      ['Mon 23', 'sun', -1, 6], ['Tue 24', 'sun', -2, 5], ['Wed 25', 'partly', 1, 8], ['Thu 26', 'cloud', 3, 10],
+      ['Fri 27', 'partly', 2, 9], ['Sat 28', 'cloud', 0, 6], ['Sun 29', 'sun', -1, 5], ['Mon 30', 'partly', 1, 7],
+      ['Tue 1', 'rain', 3, 9], ['Wed 2', 'cloud', 2, 8], ['Thu 3', 'sun', 0, 6], ['Fri 4', 'partly', -1, 5]
+    ];
+    const days = raw.map(([label, kind, lo, hi], i) => ({
+      label, lo, hi, labelColor: i === 0 ? '#E6EDF3' : muted,
+      isSun: kind === 'sun', isCloud: kind === 'cloud', isPartly: kind === 'partly', isRain: kind === 'rain',
+      left: ((lo - lo0) / span * 100).toFixed(1), width: ((hi - lo) / span * 100).toFixed(1)
+    }));
+
+    const cold = '#79B8FF', warm = '#F0883E', flat = '#C9D3DD';
+    const anomaly = (d) => {
+      const w = Math.min(Math.abs(d) / 3 * 50, 50);
+      if (Math.abs(d) < 0.25) return { bar: 'left: 48.5%; width: 3%', color: flat, delta: '±0°' };
+      return d < 0
+        ? { bar: 'right: 50%; width: ' + w.toFixed(1) + '%', color: cold, delta: '−' + Math.abs(d).toFixed(1) + '°' }
+        : { bar: 'left: 50%; width: ' + w.toFixed(1) + '%', color: warm, delta: '+' + d.toFixed(1) + '°' };
+    };
+    const weeks = [
+      ['23–29 Nov', 6, -1, -1.5, 'drier'],
+      ['30 Nov–6 Dec', 7, 1, 0.5, 'normal'],
+      ['7–13 Dec', 7, 0, 1.0, 'wetter'],
+      ['14–20 Dec', 5, -1, 0, 'normal'],
+      ['21–27 Dec', 4, -3, -0.5, 'drier'],
+      ['28 Dec–3 Jan', 4, -3, 0.3, 'normal']
+    ].map(([wk, hi, lo, d, rain]) => Object.assign({ wk, hi, lo, rain }, anomaly(d)));
+    const months = [['December', 0.6, 'Rain normal'], ['January', -0.3, 'Wetter'], ['February', 0.2, 'Rain normal']]
+      .map(([name, d, rain]) => Object.assign({ name, rain }, anomaly(d)));
+
+    const item = (title, meta, metaColor, note) => ({ title, meta, metaColor: metaColor || muted, hasNote: !!note, note: note || '' });
+    const groups = [
+      { name: 'Overdue', count: 1, color: down, items: [item('Submit expense report', 'Tue 17', down, 'Fits 16:00 gap')] },
+      { name: 'Prep for 11:00 Design review', count: 1, color: '#79B8FF', items: [item('Prepare slides', '60m', null, 'Fits 09:30 gap')] },
+      { name: 'Today', count: 2, color: muted, items: [item('Reply to landlord about lease', '15m'), item('Book December flights', '30m')] },
+      { name: 'This week', count: 3, color: muted, items: [item('Renew passport', 'Fri 20'), item('Order winter boots', 'Sun 22'), item('Plan Thanksgiving dinner', 'Thu 26')] }
+    ];
+    return {
+      blur, vwraPoints, others, hours, events, gaps, nowTop,
+      showDays, showMonth, pickDays, pickMonth,
+      daysBg: showDays ? onBg : offBg, daysFg: showDays ? '#E6EDF3' : muted,
+      monthBg: showMonth ? onBg : offBg, monthFg: showMonth ? '#E6EDF3' : muted,
+      days, weeks, months, groups
+    };
+  }
+}
+</script>
+</body>
+</html>

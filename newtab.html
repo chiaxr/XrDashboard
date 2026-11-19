@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New Tab</title>
+<link rel="stylesheet" href="newtab.css">
+<script type="module" src="newtab.js"></script>
+</head>
+<body>
+<div class="page">
+  <div class="wrap">
+
+    <div id="banner" class="banner" hidden></div>
+
+    <header class="hdr mono">
+      <h1><span id="date"></span> <span class="muted">·</span> <span id="clock"></span> <span id="tz" class="muted"></span> <span class="muted">·</span> <span id="clock-sg"></span> <span class="muted">SGT</span></h1>
+      <div class="hdr-right">
+        <span id="hdr-weather"></span>
+        <span id="hdr-counts"></span>
+        <button type="button" id="privacy" class="icon-btn" aria-label="Toggle privacy blur (P)" aria-pressed="false" title="Privacy blur (P)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          P
+        </button>
+      </div>
+    </header>
+
+    <div class="markets">
+      <section id="hourly" class="card hourly mono" aria-label="Weather, next 24 hours"></section>
+      <section id="vwra" class="card vwra mono blurrable" aria-label="VWRA"></section>
+    </div>
+
+    <main class="panels">
+      <section class="panel" aria-label="Today's schedule">
+        <div class="panel-head center">
+          <h2 id="sched-title">Schedule</h2>
+          <div id="day-nav" class="day-nav" role="group" aria-label="Choose day" hidden>
+            <button type="button" id="day-prev" aria-label="Previous day" title="Previous day (←)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+            </button>
+            <button type="button" id="day-today">Today</button>
+            <button type="button" id="day-next" aria-label="Next day" title="Next day (→)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div id="sched-next" class="sm muted blurrable" hidden></div>
+        <div id="sched-body" class="blurrable"></div>
+      </section>
+
+      <section class="panel gap14" aria-label="Weather">
+        <div class="panel-head center">
+          <h2>Weather · Philadelphia</h2>
+          <div class="seg" role="group" aria-label="Forecast range">
+            <button type="button" id="view-days" aria-pressed="true">16 days</button>
+            <button type="button" id="view-month" aria-pressed="false">Monthly</button>
+          </div>
+        </div>
+        <div id="weather-body"></div>
+      </section>
+
+      <section class="panel gap14" aria-label="To-dos">
+        <div class="panel-head">
+          <h2>To-do</h2>
+          <span id="todo-meta" class="sm muted"></span>
+        </div>
+        <div id="todo-body" class="blurrable"></div>
+        <div id="todo-stats" class="stats mono blurrable"></div>
+      </section>
+    </main>
+
+    <footer id="status" class="status mono"></footer>
+
+  </div>
+</div>
+</body>
+</html>
