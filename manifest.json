@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "New Tab Dashboard",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Personal new-tab page: markets, Philadelphia weather, today's calendar and Notion to-dos.",
   "icons": {
     "48": "icons/icon.svg",
@@ -13,7 +13,9 @@
       "update_url": "https://raw.githubusercontent.com/chiaxr/XrDashboard/main/updates.json",
       "strict_min_version": "142.0",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       }
     }
   },
@@ -21,14 +23,19 @@
     "newtab": "newtab.html"
   },
   "background": {
-    "scripts": ["background.js"],
+    "scripts": [
+      "background.js"
+    ],
     "type": "module"
   },
   "options_ui": {
     "page": "options.html",
     "open_in_tab": true
   },
-  "permissions": ["storage", "alarms"],
+  "permissions": [
+    "storage",
+    "alarms"
+  ],
   "host_permissions": [
     "https://api.open-meteo.com/*",
     "https://seasonal-api.open-meteo.com/*",
