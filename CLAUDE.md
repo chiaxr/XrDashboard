@@ -35,7 +35,8 @@ options.html    enter/edit keys and settings (stored in storage.local only)
   last-good data with a stale marker (amber) — see mockup footer.
 - HTTP 429/5xx puts the source (or the single calendar) into back-off: 20 min doubling to
   6 h, at least `Retry-After`; manual refresh waits too (`lib/backoff.js`).
-- Refresh on install, on browser start, and on alarms (cadences below). A manual
+- Refresh on install, on browser start, and on alarms (cadences below). Start and install/update
+  run the normal due-check; only Options → Refresh is "manual" (shorter minimum intervals). A manual
   "refresh now" is fine but must respect rate limits.
 
 ## Data sources

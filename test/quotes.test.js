@@ -25,10 +25,34 @@ test('VWRA quote cadence: every 2h while open, once after close, not on weekends
   assert.equal(vwraQuoteDue(thu10, q, thu10 - 5 * MIN), false, 'error retry gate');
   const thu17 = utc('2026-11-19T17:00:00Z');
   assert.equal(vwraQuoteDue(thu17, q, utc('2026-11-19T15:00:00Z')), true, 'fetch settled close');
-  assert.equal(vwraQuoteDue(thu17, q, utc('2026-11-19T16:45:00Z')), false, 'already have settled close');
+  assert.equal(vwraQuoteDue(thu17, q, utc('2026-11-19T16:45:00Z'), utc('2026-11-19T16:45:00Z')), false, 'already have settled close');
   const sat = utc('2026-11-21T12:00:00Z');
-  assert.equal(vwraQuoteDue(sat, { day: '2026-11-20' }, sat - 20 * HOUR), false);
-  assert.equal(vwraQuoteDue(sat, { day: '2026-11-19' }, sat - 20 * HOUR), true, 'missed Friday');
+  const fri1645 = utc('2026-11-20T16:45:00Z');
+  assert.equal(vwraQuoteDue(sat, { day: '2026-11-20' }, fri1645, fri1645), false, 'weekend: nothing');
+  assert.equal(vwraQuoteDue(sat, { day: '2026-11-19' }, sat - 20 * HOUR, sat - 20 * HOUR), true, 'missed Friday close');
+  const thu1630 = utc('2026-11-19T16:35:00Z');
+  assert.equal(vwraQuoteDue(thu1630, q, utc('2026-11-19T14:00:00Z'), utc('2026-11-19T14:00:00Z')), false, 'wait for close to settle');
+  const fri07 = utc('2026-11-20T07:00:00Z');
+  assert.equal(vwraQuoteDue(fri07, q, utc('2026-11-19T16:45:00Z'), utc('2026-11-19T16:45:00Z')), false, 'before open: have close');
+});
+
+test('VWRA quote: a failed close fetch is retried, a successful one is final', () => {
+  const thu17 = utc('2026-11-19T17:00:00Z');
+  const q = { day: '2026-11-19' };
+  // Last success at 14:00, attempt at 16:42 failed → retry once the 15-min gate passes.
+  assert.equal(vwraQuoteDue(thu17, q, utc('2026-11-19T16:42:00Z'), utc('2026-11-19T14:00:00Z')), true);
+});
+
+test('VWRA quote on an LSE holiday: one fetch after close, then nothing', () => {
+  // Fri 25 Dec 2026 is a holiday; AV keeps reporting Thu 24 Dec.
+  const q = { day: '2026-12-24' };
+  const fri1700 = utc('2026-12-25T17:00:00Z');
+  const thu1645 = utc('2026-12-24T16:45:00Z');
+  assert.equal(vwraQuoteDue(fri1700, q, thu1645, thu1645), true, 'one try after the "close"');
+  const fri1645 = utc('2026-12-25T16:45:00Z');
+  for (const t of ['2026-12-25T18:00:00Z', '2026-12-25T23:00:00Z', '2026-12-26T12:00:00Z', '2026-12-27T20:00:00Z', '2026-12-28T07:00:00Z']) {
+    assert.equal(vwraQuoteDue(utc(t), q, fri1645, fri1645), false, `no retries at ${t}`);
+  }
 });
 
 test('VWRA backfill only when history is missing or has a long gap', () => {

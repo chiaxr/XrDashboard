@@ -11,6 +11,7 @@ import { fetchCalendar, isValidIcalUrl, mergeCalendars } from './lib/calendar.js
 import { fetchNotion, parseNotionId } from './lib/notion.js';
 import {
   fetchVwraQuote, fetchVwraHistory, vwraQuoteDue, vwraHistoryDue, avBudgetSpend, mergeHistory, appendQuoteToHistory,
+  lseState,
 } from './lib/quotes.js';
 import { dateStr, fmtClock } from './lib/time.js';
 import { inBackoff, nextBackoff, isThrottle } from './lib/backoff.js';
@@ -252,7 +253,9 @@ function refreshVwra(ctx) {
     if (calledHistory) await new Promise((r) => setTimeout(r, 2000));
     const av = sources.alphaVantage;
     const quote = store.quotes?.data?.vwra;
-    const due = vwraQuoteDue(now, quote, av?.attemptedAt) || (ctx.manual && now - (av?.attemptedAt || 0) > 30 * MIN);
+    // Manual refresh can fetch an extra quote only while the market is open (a closed market's price can't change).
+    const due = vwraQuoteDue(now, quote, av?.attemptedAt, av?.fetchedAt)
+      || (ctx.manual && lseState(now).open && now - (av?.attemptedAt || 0) > 30 * MIN);
     if (!due) return;
     if (!(await spend('avBudget', (b) => avBudgetSpend(b, now)))) {
       await updateQuotes((q) => { q.sources.alphaVantage = { ...(q.sources.alphaVantage || {}), budgetBlockedAt: now }; });
@@ -309,8 +312,10 @@ async function ensureAlarm() {
   if (!existing) B.alarms.create(TICK, { delayInMinutes: 1, periodInMinutes: TICK_MINUTES });
 }
 
-B.runtime.onInstalled.addListener(() => { ensureAlarm(); cleanUpLegacy().finally(() => refreshAll({ manual: true })); });
-B.runtime.onStartup.addListener(() => { ensureAlarm(); refreshAll({ manual: true }); });
+// Browser start and install/update fetch only what is due (cached data covers the rest).
+// Manual refresh (shorter minimum intervals) is only the Options page's Refresh button.
+B.runtime.onInstalled.addListener(() => { ensureAlarm(); cleanUpLegacy().finally(() => refreshAll()); });
+B.runtime.onStartup.addListener(() => { ensureAlarm(); refreshAll(); });
 B.alarms.onAlarm.addListener((alarm) => { if (alarm.name === TICK) refreshAll(); });
 
 B.runtime.onMessage.addListener((msg, sender) => {
