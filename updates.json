@@ -3,6 +3,16 @@
     "newtab-dashboard@xrdashboard": {
       "updates": [
         {
+          "version": "1.0.6",
+          "update_link": "https://github.com/chiaxr/XrDashboard/releases/download/v1.0.6/newtab-dashboard-1.0.6.xpi",
+          "update_hash": "sha256:2f809649d509f425fcf3cf2283190bc7705a3842e8c5cbf34193bf94903fc800",
+          "browser_specific_settings": {
+            "gecko": {
+              "strict_min_version": "142.0"
+            }
+          }
+        },
+        {
           "version": "1.0.5",
           "update_link": "https://github.com/chiaxr/XrDashboard/releases/download/v1.0.5/newtab-dashboard-1.0.5.xpi",
           "update_hash": "sha256:c6113e23d8bf60858b327c454c69cb0cc8eec131de68adfc8c46fcd0100aa253",
