@@ -102,6 +102,32 @@ body.privacy .blurrable { filter: blur(8px); }
 #theme[data-pref="auto"] .ic-auto, #theme[data-pref="light"] .ic-light, #theme[data-pref="dark"] .ic-dark { display: block; }
 .icon-btn:focus-visible, .seg button:focus-visible, .todo:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 
+/* most-visited sites (one line; scrolls sideways when it doesn't fit) */
+.sites {
+  display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; margin: -2px 0;
+  padding: 2px; scrollbar-width: thin; scrollbar-color: var(--dash) transparent;
+}
+.site {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 9px; max-width: 220px; min-height: 40px;
+  padding: 0 13px 0 11px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); text-decoration: none; font-size: 12px;
+}
+.site:hover { color: var(--text); border-color: var(--dash); }
+/* Accent = the favicon's main colour (set per chip as --accent from JS; validated #rrggbb). */
+.site.tinted {
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+.site.tinted:hover { border-color: color-mix(in srgb, var(--accent) 70%, var(--border)); }
+:root[data-theme="light"] .site.tinted { background: color-mix(in srgb, var(--accent) 9%, var(--panel)); }
+.site:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.site .fav { flex: 0 0 16px; width: 16px; height: 16px; border-radius: 3px; }
+.site .fav.letter {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--border); color: var(--text-2); font-size: 10px; font-weight: 700;
+}
+.site .lbl { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 /* markets */
 .markets { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
 .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }

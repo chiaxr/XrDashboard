@@ -50,7 +50,7 @@ options.html    enter/edit keys and settings (stored in storage.local only)
 | Alpha Vantage | VWRA (`VWRA.LON`) quote + daily history | quote ~every 2 h on LSE trading days; history once | Free tier: **25 requests/day, 5/min** — keep a daily call counter in storage and never exceed ~15. Backfill ~100 days once with `TIME_SERIES_DAILY` (compact), then append each day's close to `vwraHistory` locally. |
 
 `host_permissions` must list exactly these hosts (plus the Google Calendar ICS host) —
-never `<all_urls>`. Permissions: `storage`, `alarms`.
+never `<all_urls>`. Permissions: `storage`, `alarms`, `topSites` (most-visited row; local only).
 
 ### Notion database expected fields
 
@@ -90,6 +90,11 @@ spacing, colours and type from it, not values.
   variables in `newtab.css` (`:root` and `:root[data-theme="light"]`); never hard-code a colour in
   JS (SVG colours go in `style`, since presentation attributes can't use `var()`).
   `theme-init.js` applies the last theme from a `localStorage` mirror before first paint.
+- Most-visited row (below the header, above the top row): Firefox `topSites` (frecency, one per
+  domain, ≤12), 40px chips (favicon + page title, hostname if none; tinted with the favicon's main colour
+  via `--accent`, neutral icons stay untinted) on one line that scrolls sideways; validated by
+  `lib/sites.js` (http(s) only, favicons only as `data:image`), cached in `storage.local.topSites`
+  for first paint and refreshed on load/visibility. Blurred in privacy mode.
 - Top row (one line): hourly weather strip on the left — a summary ("Rain from 15:00" /
   "Dry next 24 h", temperature range) then 24 hourly chips (time, day/night icon, °C,
   rain chance ≥ 20%) that **scroll horizontally** (`flex-wrap: nowrap; overflow-x: auto`)
@@ -105,7 +110,7 @@ spacing, colours and type from it, not values.
 - Footer: one status item per source with last-updated time; amber when stale/errored.
 - To-dos are **read-only** in v1: clicking one opens its Notion page in a new tab. No
   checkbox write-back (the token is read-only by design).
-- **Privacy mode:** `P` key and the header button toggle a blur on the ticker, schedule
+- **Privacy mode:** `P` key and the header button toggle a blur on the most-visited row, ticker, schedule
   and to-dos; persisted; must not fire while typing in an input.
 - States to implement: first run (no keys → friendly prompt linking to Options), loading
   from cache, per-panel error, empty day, weekend/market closed.

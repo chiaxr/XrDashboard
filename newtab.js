@@ -12,6 +12,9 @@ import {
   computeGaps, groupTodos, fillGaps, loadStats, layoutEvents, nextLabel, DAY_START, DAY_END,
 } from './lib/plan.js';
 import { lseState, avCallsToday } from './lib/quotes.js';
+import {
+  normaliseTopSites, sameSites, siteText, validAccent, dominantColour, TOP_SITES_LIMIT,
+} from './lib/sites.js';
 
 const B = globalThis.browser;
 const $ = (id) => document.getElementById(id);
@@ -136,6 +139,65 @@ function renderHeader(now) {
   const priv = ui().privacy;
   document.body.classList.toggle('privacy', priv);
   $('privacy').setAttribute('aria-pressed', String(priv));
+}
+
+// ── most-visited sites ──────────────────────────────────────────────────
+
+function renderSites() {
+  const sites = store.topSites?.data;
+  const el = $('sites');
+  if (!Array.isArray(sites) || !sites.length) { el.hidden = true; return; }
+  el.hidden = false;
+  // Data was validated by normaliseTopSites: url is http(s), favicon is a data:image URL or null.
+  replace(el, sites.map((site) => {
+    const accent = validAccent(site.accent);
+    return h('a', {
+      class: `site${accent ? ' tinted' : ''}`, href: site.url,
+      title: site.title ? `${site.title}\n${site.url}` : site.url,
+      style: accent ? { '--accent': accent } : null,
+    },
+    site.favicon
+      ? h('img', { class: 'fav', src: site.favicon, alt: '', width: 16, height: 16, decoding: 'async' })
+      : h('span', { class: 'fav letter', 'aria-hidden': 'true' }, site.host.charAt(0).toUpperCase()),
+    h('span', { class: 'lbl' }, siteText(site)));
+  }));
+}
+
+/** Main colour of a (data: URL) favicon, read from a small canvas. Null if neutral or unreadable. */
+async function faviconAccent(src) {
+  if (!src) return null;
+  try {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const N = 24;
+    const ctx = Object.assign(document.createElement('canvas'), { width: N, height: N })
+      .getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, N, N);
+    return dominantColour(ctx.getImageData(0, 0, N, N).data);
+  } catch {
+    return null;
+  }
+}
+
+/** Read Firefox's most-visited list (local, no network) and cache it for the next first paint. */
+async function refreshTopSites() {
+  if (!B.topSites?.get) return;
+  try {
+    const list = await B.topSites.get({ limit: TOP_SITES_LIMIT * 2, onePerDomain: true, includeFavicon: true });
+    const data = normaliseTopSites(list);
+    // Reuse accents already worked out for the same favicon; compute the rest.
+    const known = new Map((store.topSites?.data || []).filter((x) => x.favicon && 'accent' in x).map((x) => [x.favicon, x.accent ?? null]));
+    await Promise.all(data.map(async (site) => {
+      site.accent = known.has(site.favicon) ? validAccent(known.get(site.favicon)) : await faviconAccent(site.favicon);
+    }));
+    if (sameSites(data, store.topSites?.data)) return;
+    store.topSites = { data, fetchedAt: Date.now() };
+    safe(renderSites);
+    await B.storage.local.set({ topSites: store.topSites });
+  } catch (e) {
+    console.error('topSites', e);
+  }
 }
 
 // Theme preference: 'auto' follows Firefox's light/dark appearance (prefers-color-scheme),
@@ -704,6 +766,7 @@ function render() {
   try { model = scheduleModel(now); } catch (e) { console.error(e); model = null; }
   safe(renderBanner);
   safe(renderHeader, now);
+  safe(renderSites);
   safe(renderHourly, now);
   safe(renderVwra, now);
   if (model) {
@@ -771,9 +834,11 @@ async function init() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       render();
+      refreshTopSites();
       B.runtime.sendMessage({ type: 'tick' }).catch(() => {});
     }
   });
+  refreshTopSites();
 
   scheduleMinuteTick();
   // Ask the background page to catch up (it only fetches what is due; never blocks rendering).

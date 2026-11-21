@@ -1,6 +1,6 @@
 # New Tab Dashboard (Firefox)
 
-A personal Firefox new-tab page: the next 24 hours of weather and VWRA, Philadelphia weather (16 days and a
+A personal Firefox new-tab page: your most-visited sites, the next 24 hours of weather and VWRA, Philadelphia weather (16 days and a
 monthly outlook), today's Google Calendar, and Notion to-dos matched to free gaps in the day.
 
 Manifest V3, plain HTML/CSS/JS, no remote code. The only third-party code is
@@ -85,7 +85,7 @@ live when that changes.
 add a rule in its settings for the add-on ID `newtab-dashboard@xrdashboard`: `#0D1117` for dark
 mode, `#F3F5F8` for light mode. With the dashboard on Auto, both follow the same mode.
 
-Shortcuts: press `P`, or click the eye button, to blur the ticker, schedule and to-dos.
+Shortcuts: press `P`, or click the eye button, to blur the most-visited sites, ticker, schedule and to-dos.
 `←`/`→` (or the ‹ Today › buttons) step the schedule through days, from a week back to 30
 days ahead. Keys are ignored while you type in a field or hold Cmd/Ctrl/Alt.
 
@@ -147,4 +147,7 @@ Versions before 1.0.3 don't have `update_url`. Install 1.0.3 or later by hand on
   default MV3 CSP is kept.
 - Keys and the iCal URL live only in `storage.local`. Nothing is hard-coded or synced.
 - `host_permissions` lists exactly the six API hosts. There is no analytics or telemetry.
+- The `topSites` permission (Firefox shows it as "Access browsing history") is used only to read
+  the most-visited list locally for the row under the header. Only http(s) links are shown, and
+  favicons are used only as inline `data:` images, so the row makes no network requests.
 - Notion links are only opened if they point at `notion.com` / `notion.so` / `notion.site` over HTTPS.
