@@ -6,7 +6,9 @@ import {
   CADENCE, MANUAL_MIN_INTERVAL, MIN, HOSTS, withDefaults, CALENDAR_COLORS, MAX_CALENDARS,
 } from './lib/config.js';
 import { getAll, get, set, patchRecord, saveData, saveError } from './lib/storage.js';
-import { fetchForecast, fetchOutlook } from './lib/weather.js';
+import { fetchForecast, fetchOutlook, fetchNormals } from './lib/weather.js';
+import { activeLocation, locationKey, nearHome, isSettled } from './lib/location.js';
+import { normalsList, findNormals, withNormals } from './lib/climate.js';
 import { fetchCalendar, isValidIcalUrl, mergeCalendars } from './lib/calendar.js';
 import { fetchNotion, parseNotionId } from './lib/notion.js';
 import {
@@ -93,10 +95,12 @@ function runSimple(key, ctx, { cadence, minManual, configHash = null, host, fetc
 
 // ── sources ──────────────────────────────────────────────────────────────
 
+// Weather sources carry the location in configHash, so a new place refetches straight away.
 function refreshWeather(ctx) {
   const rec = ctx.store.weather;
   return runSimple('weather', ctx, {
-    cadence: CADENCE.weather, minManual: MANUAL_MIN_INTERVAL.weather, host: HOSTS.forecast, fetcher: fetchForecast,
+    cadence: CADENCE.weather, minManual: MANUAL_MIN_INTERVAL.weather, host: HOSTS.forecast,
+    configHash: locationKey(ctx.location), fetcher: () => fetchForecast(ctx.location),
     // Cached data from before the hourly strip existed: fetch once now rather than in 30 min.
     forceDue: !!rec?.data && !rec.error && !Array.isArray(rec.data.hours) && ctx.now - (rec.attemptedAt || 0) > MIN,
   });
@@ -104,7 +108,34 @@ function refreshWeather(ctx) {
 
 function refreshOutlook(ctx) {
   return runSimple('weatherOutlook', ctx, {
-    cadence: CADENCE.weatherOutlook, minManual: MANUAL_MIN_INTERVAL.weatherOutlook, host: HOSTS.seasonal, fetcher: fetchOutlook,
+    cadence: CADENCE.weatherOutlook, minManual: MANUAL_MIN_INTERVAL.weatherOutlook, host: HOSTS.seasonal,
+    configHash: locationKey(ctx.location), fetcher: () => fetchOutlook(ctx.location),
+  });
+}
+
+/**
+ * Climate normals for the long-range estimate; near Philadelphia the bundled station table is used.
+ * Elsewhere a saved table within 50 km is reused (the last 10 places are kept), and a new place is
+ * fetched only once it has been current for 12 h, so travelling does not fetch at every stop.
+ */
+async function refreshNormals(ctx) {
+  const loc = ctx.location;
+  if (nearHome(loc)) return;
+  const rec = ctx.store.normals;
+  const list = normalsList(rec?.data);
+  const saved = findNormals(list, loc);
+  if (saved) {
+    // Keep the most recently used first; an error from another place no longer applies.
+    if (list[0] !== saved || rec?.error) {
+      await withLock('normals', () => patchRecord('normals', { data: { places: withNormals(list, saved) }, error: null }));
+    }
+    return;
+  }
+  if (!isSettled(loc, ctx.store.geo, ctx.now)) return;
+  await runSimple('normals', ctx, {
+    cadence: CADENCE.normals, minManual: MANUAL_MIN_INTERVAL.normals, host: HOSTS.archive,
+    configHash: locationKey(loc),
+    fetcher: async () => ({ places: withNormals(list, await fetchNormals(loc)) }),
   });
 }
 
@@ -279,9 +310,10 @@ function refreshVwra(ctx) {
 
 async function refreshAll({ manual = false } = {}) {
   const store = await getAll();
-  const ctx = { now: Date.now(), manual, store, config: withDefaults(store.config) };
+  const config = withDefaults(store.config);
+  const ctx = { now: Date.now(), manual, store, config, location: activeLocation(config, store.geo) };
   const jobs = [
-    refreshWeather(ctx), refreshOutlook(ctx), refreshCalendar(ctx), refreshNotion(ctx),
+    refreshWeather(ctx), refreshOutlook(ctx), refreshNormals(ctx), refreshCalendar(ctx), refreshNotion(ctx),
     refreshVwra(ctx),
   ].filter(Boolean);
   await Promise.allSettled(jobs);

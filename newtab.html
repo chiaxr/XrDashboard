@@ -15,7 +15,7 @@
     <div id="banner" class="banner" hidden></div>
 
     <header class="hdr mono">
-      <h1><span id="date"></span> <span class="muted">·</span> <span id="clock"></span> <span id="tz" class="muted"></span> <span class="muted">·</span> <span id="clock-sg"></span> <span class="muted">SGT</span></h1>
+      <h1><span id="date"></span> <span class="muted">·</span> <span id="clock"></span> <span id="tz" class="muted"></span> <span id="sg"><span class="muted">·</span> <span id="clock-sg"></span> <span class="muted">SGT</span></span></h1>
       <div class="hdr-right">
         <span id="hdr-weather"></span>
         <span id="hdr-counts"></span>
@@ -61,7 +61,7 @@
 
       <section class="panel gap14" aria-label="Weather">
         <div class="panel-head center">
-          <h2>Weather · Philadelphia</h2>
+          <h2>Weather · <span id="wx-place">Philadelphia</span></h2>
           <div class="seg" role="group" aria-label="Forecast range">
             <button type="button" id="view-days" aria-pressed="true">16 days</button>
             <button type="button" id="view-month" aria-pressed="false">Monthly</button>

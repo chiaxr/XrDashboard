@@ -63,5 +63,14 @@ EC46 weekly temperature anomaly, correlation with what happened: week 1 0.92, we
 (better than any 16-day model's week 2), week 3 0.35, weeks 4–6 0.24 → 0.02 (mostly the
 warming trend vs 1991–2020). Wetter/drier: week 1 0.67, week 2 0.27, weeks 3–6 ≤ 0.
 
+Away from Philadelphia (the location is detected or set in Options), the same models are requested.
+NBM is US-only, so outside the US temperature is IFS + AIFS and the rain chance is best match's;
+none of that was scored there. The long-range estimate uses normals from Open-Meteo's ERA5 archive
+(2006–2025) instead of the station table. At KPHL, ERA5 normals run 0.5 °C cool on highs and 0.9 °C
+on lows; ERA5 normal + EC46 anomaly scored 2.71 °C for weeks 2–6, against 2.61 with station normals
+and 2.77 for the station normal alone. A detected place's normals (~170 KB) are fetched only after
+it has been current for 12 h, and the last 10 places are kept and reused within 50 km (about two
+ERA5 grid cells), so travelling does not fetch at every stop. Until then, days 12+ show the models.
+
 Caveats: one station, ~10 km from the dashboard's Center City point; the 16-day and weekly
 tests cover seven months. Rescore if Open-Meteo changes models (HRRR is due to be replaced by RRFS).

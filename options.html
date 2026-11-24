@@ -21,6 +21,19 @@
 
   <form id="form" autocomplete="off" novalidate>
     <section class="card">
+      <h2>Weather location</h2>
+      <label class="radio"><input type="radio" name="loc-mode" value="auto"> Detect automatically (Firefox's location)</label>
+      <p class="muted small">On a Mac, allow Firefox in System Settings → Privacy &amp; Security → Location Services. The place is checked every 30 minutes; moves under 25 km keep the current one. Until a location is found, Philadelphia is used. Climate averages for the long-range estimate are fetched once you have been in a place for 12 hours; the last 10 places are kept and reused within 50 km.</p>
+      <label class="radio"><input type="radio" name="loc-mode" value="manual"> Use a place</label>
+      <div class="secret">
+        <input id="loc-query" type="text" spellcheck="false" placeholder="City name, e.g. Singapore" aria-label="Search for a place">
+        <button type="button" id="loc-search">Search</button>
+      </div>
+      <div id="loc-results" class="loc-results"></div>
+      <p id="loc-chosen" class="muted small"></p>
+    </section>
+
+    <section class="card">
       <h2>Google Calendars</h2>
       <p class="muted small">For each calendar: Google Calendar → Settings → the calendar → Integrate calendar → <em>Secret address in iCal format</em>. Read-only. Up to 8 calendars; their events are merged into one schedule.</p>
       <div id="cal-list" class="cal-list"></div>

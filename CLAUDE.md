@@ -1,7 +1,8 @@
 # New Tab Dashboard — Firefox extension
 
 A personal Firefox new-tab page showing: an hourly weather strip and the VWRA ticker, weather for
-Philadelphia (16-day and monthly views), today's Google Calendar schedule, and Notion
+the computer's location (detected via Firefox, or a place set in Options; Philadelphia by default)
+(16-day and monthly views), today's Google Calendar schedule, and Notion
 to-dos matched to free gaps in the schedule. Single user, single machine (macOS).
 
 The visual design is final: **design B ("Dense")**, reference mockup in
@@ -17,8 +18,11 @@ The visual design is final: **design B ("Dense")**, reference mockup in
   `ui-monospace, Menlo, monospace`). Icons are inline SVG.
 - **At most one third-party dependency:** `ical.js` (Mozilla) for ICS parsing and RRULE
   expansion, vendored into `vendor/` with its licence. Ask before adding anything else.
+  (Bundled data, not code: `lib/cities.js` from GeoNames, CC BY 4.0, via `scripts/cities.mjs`;
+  `lib/normals.js` from Iowa Environmental Mesonet KPHL records, via `scripts/normals.mjs`.)
 - **Metric units everywhere** (°C, km/h, mm). 24-hour times, except the header clock, which is
-  12-hour with Singapore time (SGT) beside it. Timezone `America/New_York`.
+  12-hour with Singapore time (SGT) beside it (hidden when the computer is on Singapore time).
+  Timezone: the computer's (`TZ` in `lib/config.js`); tests pin `America/New_York`.
 - **Must render instantly from cache.** The new-tab page never waits on the network.
 
 ## Architecture
@@ -43,14 +47,18 @@ options.html    enter/edit keys and settings (stored in storage.local only)
 
 | Source | Use | Cadence | Notes |
 |---|---|---|---|
-| Open-Meteo forecast | Current + 16-day daily + hourly (next 36 h, for the 24 h strip) | 30 min | No key. `latitude=39.95&longitude=-75.17&forecast_days=16&forecast_hours=36&timezone=America/New_York`. Defaults are already metric. `models=best_match,ncep_nbm_conus,ecmwf_aifs025_single,ecmwf_ifs`, merged per variable (temperature = NBM + AIFS average; rain chance from NBM / model vote); highs/lows from day 12 = KPHL normal (`lib/normals.js`) + EC46 weekly anomaly — see `docs/weather-models.md` before changing models. |
+| Open-Meteo forecast | Current + 16-day daily + hourly (next 36 h, for the 24 h strip) | 30 min | No key. Active location's coordinates (`lib/location.js`; default `39.95,-75.17`), `forecast_days=16&forecast_hours=36&timezone=<TZ>`; a location change refetches (location in `configHash`). Defaults are already metric. `models=best_match,ncep_nbm_conus,ecmwf_aifs025_single,ecmwf_ifs`, merged per variable (temperature = NBM + AIFS average; rain chance from NBM / model vote); highs/lows from day 12 = KPHL normal (`lib/normals.js`) + EC46 weekly anomaly — see `docs/weather-models.md` before changing models. |
 | Open-Meteo seasonal | "Monthly" view: 6 weekly rows (ECMWF EC46) + 3 months (SEAS5), anomaly vs usual + precip tendency | 6 h | Check the current Seasonal API docs for exact endpoint/params before coding. Label it as trends, not daily forecasts. |
+| Open-Meteo archive | Climate normals for the long-range estimate away from Philadelphia (ERA5 daily max/min 2006–2025) | once per place | Skipped within 25 km of Philadelphia, where the bundled KPHL table is used. A detected place is fetched only after 12 h there (`geo.since`); the last 10 places are kept and reused within 50 km (`lib/climate.js`). |
+| Open-Meteo geocoding | Options → Weather location → place search | on demand | Options page only. |
 | Google Calendar | Events from 7 days back to 30 days ahead (schedule day navigation) | 10 min | One or more **secret iCal addresses** (read-only, up to 8), pasted into Options. Parse with ical.js; expand recurrences and exceptions; convert to local time; drop declined/cancelled if present. Merge calendars (de-duplicate shared events); each gets an accent colour; a failing calendar keeps its last events. |
 | Notion API | Open to-dos | 10 min | Internal integration with **Read content only**, shared with the to-do database only. Check the current API version / data-source query docs. |
 | Alpha Vantage | VWRA (`VWRA.LON`) quote + daily history | quote ~every 2 h on LSE trading days; history once | Free tier: **25 requests/day, 5/min** — keep a daily call counter in storage and never exceed ~15. Backfill ~100 days once with `TIME_SERIES_DAILY` (compact), then append each day's close to `vwraHistory` locally. |
 
 `host_permissions` must list exactly these hosts (plus the Google Calendar ICS host) —
-never `<all_urls>`. Permissions: `storage`, `alarms`, `topSites` (most-visited row; local only).
+never `<all_urls>`. Permissions: `storage`, `alarms`, `topSites` (most-visited row; local only),
+`geolocation` (auto location; the new-tab page asks at most every 30 min, coordinates rounded to
+~1 km, moves under 25 km ignored, named offline from `lib/cities.js`).
 
 ### Notion database expected fields
 
@@ -154,4 +162,4 @@ spacing, colours and type from it, not values.
 ## Out of scope (v1)
 
 Brokerage integrations, buy/sell recommendations, writing back to Calendar or Notion,
-multiple locations, sync across devices.
+more than one location at a time, sync across devices.

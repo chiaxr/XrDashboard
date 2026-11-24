@@ -5,7 +5,7 @@
   "description": "Personal Firefox new-tab dashboard (MV3 WebExtension).",
   "type": "module",
   "scripts": {
-    "test": "node --test test/",
+    "test": "TZ=America/New_York node --test test/",
     "lint": "npx --yes web-ext@10 lint --self-hosted",
     "start": "npx --yes web-ext@10 run",
     "build": "npx --yes web-ext@10 build --overwrite-dest",

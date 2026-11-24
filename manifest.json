@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "New Tab Dashboard",
   "version": "1.0.6",
-  "description": "Personal new-tab page: markets, Philadelphia weather, today's calendar and Notion to-dos.",
+  "description": "Personal new-tab page: markets, local weather, today's calendar and Notion to-dos.",
   "icons": {
     "48": "icons/icon.svg",
     "96": "icons/icon.svg"
@@ -35,11 +35,14 @@
   "permissions": [
     "storage",
     "alarms",
-    "topSites"
+    "topSites",
+    "geolocation"
   ],
   "host_permissions": [
     "https://api.open-meteo.com/*",
     "https://seasonal-api.open-meteo.com/*",
+    "https://archive-api.open-meteo.com/*",
+    "https://geocoding-api.open-meteo.com/*",
     "https://calendar.google.com/*",
     "https://api.notion.com/*",
     "https://www.alphavantage.co/*"

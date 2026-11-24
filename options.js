@@ -1,7 +1,10 @@
 // Options: enter/edit keys and settings (storage.local only — never storage.sync).
 
 import { h, replace } from './lib/dom.js';
-import { withDefaults, DEFAULT_CONFIG, AV_DAILY_CAP, MAX_CALENDARS, CALENDAR_COLORS } from './lib/config.js';
+import { withDefaults, DEFAULT_CONFIG, AV_DAILY_CAP, MAX_CALENDARS, CALENDAR_COLORS, HOSTS } from './lib/config.js';
+import { locationSettings, activeLocation, validPlace, nearHome, isSettled, SETTLE_MS } from './lib/location.js';
+import { normalsList, findNormals } from './lib/climate.js';
+import { fetchJson } from './lib/net.js';
 import { isValidIcalUrl } from './lib/calendar.js';
 import { parseNotionId } from './lib/notion.js';
 import { avCallsToday } from './lib/quotes.js';
@@ -55,9 +58,57 @@ function readCals() {
   }));
 }
 
+// ── weather location ──
+
+let chosenPlace = null; // place picked for manual mode (saved with the form)
+
+const placeLabel = (p) => [p.name, p.admin1 && p.admin1 !== p.name ? p.admin1 : '', p.country].filter(Boolean).join(', ');
+const locMode = () => document.querySelector('input[name="loc-mode"]:checked')?.value || 'auto';
+
+function renderChosen() {
+  $('loc-chosen').textContent = chosenPlace ? `Chosen place: ${placeLabel(chosenPlace)}` : 'No place chosen yet — search above.';
+}
+
+/** Open-Meteo place search → [{ name, admin1, country, latitude, longitude }]. */
+async function searchPlaces(query) {
+  const q = new URLSearchParams({ name: query, count: '8', language: 'en', format: 'json' });
+  const raw = await fetchJson(`${HOSTS.geocoding}/v1/search?${q}`);
+  return (Array.isArray(raw?.results) ? raw.results : []).map((r) => {
+    const p = validPlace({ name: r.name, country: r.country, latitude: r.latitude, longitude: r.longitude });
+    return p && { ...p, admin1: typeof r.admin1 === 'string' ? r.admin1.slice(0, 60) : '' };
+  }).filter(Boolean);
+}
+
+async function onSearch() {
+  const query = $('loc-query').value.trim();
+  if (query.length < 2) return;
+  const box = $('loc-results');
+  replace(box, [h('span', { class: 'muted small' }, 'Searching…')]);
+  try {
+    if (!(await B.permissions.contains({ origins: [`${HOSTS.geocoding}/*`] }))) throw new Error('click "Grant access" above first');
+    const places = await searchPlaces(query);
+    replace(box, places.length ? places.map((p) => {
+      const b = h('button', { type: 'button', 'aria-pressed': 'false' }, placeLabel(p));
+      b.addEventListener('click', () => {
+        chosenPlace = p;
+        for (const x of box.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+        document.querySelector('input[name="loc-mode"][value="manual"]').checked = true;
+        renderChosen();
+      });
+      return b;
+    }) : [h('span', { class: 'muted small' }, 'No places found.')]);
+  } catch (e) {
+    replace(box, [h('span', { class: 'hint warn' }, `Search failed: ${e.message}`)]);
+  }
+}
+
 async function load() {
   const { config } = await B.storage.local.get('config');
   const c = withDefaults(config);
+  const loc = locationSettings(c);
+  document.querySelector(`input[name="loc-mode"][value="${loc.mode}"]`).checked = true;
+  chosenPlace = loc.place;
+  renderChosen();
   replace($('cal-list'), (c.calendars.length ? c.calendars : [{ url: '', name: '' }]).map(calRow));
   renumberCals();
   $('notionToken').value = c.notionToken;
@@ -115,6 +166,7 @@ function validate() {
   mark('prop-doneValues', !!opts && opts.length > 0 && opts.every((o) => done.has(o.toLowerCase())),
     'Finished status values cover every option, so no to-dos would show');
   mark('alphaVantageKey', !/^[A-Za-z0-9]*$/.test($('alphaVantageKey').value.trim()), 'The Alpha Vantage key should be letters and digits');
+  if (locMode() === 'manual' && !chosenPlace) errors.unshift('Search for a place and pick one, or choose "Detect automatically"');
   return errors;
 }
 
@@ -130,6 +182,7 @@ async function save(e) {
     notionDatabase: $('notionDatabase').value.trim(),
     notionProps,
     alphaVantageKey: $('alphaVantageKey').value.trim(),
+    location: { mode: locMode(), place: chosenPlace ? validPlace(chosenPlace) : null },
   };
   await B.storage.local.set({ config });
   setMsg('Saved. Fetching…', 'ok');
@@ -158,6 +211,23 @@ function when(ms, now) {
   return dateStr(ms) === dateStr(now) ? fmtClock(ms) : `${fmtShortDate(dateStr(ms))} ${fmtClock(ms)}`;
 }
 
+/** Which normals the long-range estimate uses here, and how many places are saved. */
+function normalsRow(loc, s, now) {
+  const places = normalsList(s.normals?.data);
+  const saved = nearHome(loc) ? null : findNormals(places, loc);
+  let state;
+  if (nearHome(loc)) state = 'built-in Philadelphia table';
+  else if (saved) state = `saved for ${saved.name}`;
+  else if (isSettled(loc, s.geo, now)) state = 'fetching for this place';
+  else state = `fetched once you have been here ${Math.round(SETTLE_MS / 3600000)} h`;
+  const count = `${places.length} place${places.length === 1 ? '' : 's'} saved`;
+  const err = !nearHome(loc) && !saved && s.normals?.error;
+  return h('tr', null,
+    h('td', null, 'Climate normals'),
+    h('td', null, `${state} · ${count}`),
+    h('td', { class: err ? 'err' : null }, err || 'ok'));
+}
+
 async function renderStatus() {
   const s = await B.storage.local.get(null);
   const now = Date.now();
@@ -166,7 +236,15 @@ async function renderStatus() {
     h('td', null, name),
     h('td', null, `updated ${when(rec?.fetchedAt, now)}`),
     h('td', { class: rec?.error ? 'err' : null }, rec?.error || 'ok')));
+  const loc = activeLocation(withDefaults(s.config), s.geo);
+  const how = { manual: 'chosen in Options', auto: 'detected', default: 'default until a location is found' }[loc.source];
+  rows.push(h('tr', null,
+    h('td', null, 'Location'),
+    h('td', null, `${loc.name} (${how})`),
+    h('td', { class: s.geo?.error && loc.source !== 'manual' ? 'err' : null },
+      loc.source === 'manual' ? 'ok' : s.geo?.error || (s.geo?.checkedAt ? `checked ${when(s.geo.checkedAt, now)}` : 'not checked yet — open a new tab'))));
   row('Weather', s.weather);
+  rows.push(normalsRow(loc, s, now));
   row('Seasonal outlook', s.weatherOutlook);
   row('Calendars', s.calendar);
   for (const c of s.calendar?.data?.calendars || []) {
@@ -200,6 +278,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelector('.cal-row:last-child .cal-url').focus();
   });
   $('refresh').addEventListener('click', refresh);
+  $('loc-search').addEventListener('click', onSearch);
+  $('loc-query').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); onSearch(); } });
   $('grant').addEventListener('click', async () => {
     // Must be called directly from the click handler (user gesture).
     const ok = await B.permissions.request({ origins: ORIGINS });

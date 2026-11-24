@@ -1,11 +1,12 @@
 # New Tab Dashboard (Firefox)
 
-A personal Firefox new-tab page: your most-visited sites, the next 24 hours of weather and VWRA, Philadelphia weather (16 days and a
+A personal Firefox new-tab page: your most-visited sites, the next 24 hours of weather and VWRA, weather where you are (16 days and a
 monthly outlook), today's Google Calendar, and Notion to-dos matched to free gaps in the day.
 
 Manifest V3, plain HTML/CSS/JS, no remote code. The only third-party code is
 [ical.js](https://github.com/kewisch/ical.js) 2.2.1 (MPL-2.0), vendored unmodified in
-`vendor/ical.js/`.
+`vendor/ical.js/`. City names for the detected location come from
+[GeoNames](https://www.geonames.org/) (CC BY 4.0), bundled in `lib/cities.js`.
 
 ## Layout
 
@@ -58,20 +59,24 @@ the dashboard. Weather works without any keys. The rest is set up in Options
 ## Setup (Options page)
 
 1. **Site access.** If Options shows a "Grant access" box, click it. Firefox MV3 treats host
-   permissions as user-grantable, and the dashboard only asks for its six API hosts.
-2. **Google Calendars.** For each calendar: Google Calendar → Settings → the calendar →
+   permissions as user-grantable, and the dashboard only asks for its eight API hosts.
+   After updating to a version with new hosts, click it again.
+2. **Weather location.** *Detect automatically* (default) uses Firefox's location; on a Mac,
+   allow Firefox under System Settings → Privacy & Security → Location Services. Or choose
+   *Use a place*, search for a city and Save. Until a location is found, Philadelphia is used.
+3. **Google Calendars.** For each calendar: Google Calendar → Settings → the calendar →
    *Integrate calendar* → *Secret address in iCal format*. Add up to 8 with *+ Add calendar*;
    they're merged into one schedule, each with its own accent colour. Recurring events, exceptions, time zones and all-day
    events are expanded locally. Declined invites (matched against the calendar owner in the
    URL) and cancelled events are dropped.
-3. **Notion.** Create an *internal* integration with **Read content** only, then share just
+4. **Notion.** Create an *internal* integration with **Read content** only, then share just
    the to-do database with it (database ⋯ → Connections). Paste the token and the database
    URL. Map property names if yours differ: `Name`, `Status` (status/select/checkbox),
    done values (default `Done`), `Due`, `Estimate (min)`, `Related event`, and optionally
    `Priority` (select/status/number). Within each group, and when suggesting to-dos for free
    gaps, higher priority comes first (High/Urgent/P0–P1 before Medium/P2 before Low; other
    option names follow their order in Notion), then the earliest due date.
-4. **Alpha Vantage** free API key (VWRA).
+5. **Alpha Vantage** free API key (VWRA).
 
 The page is drawn at 120% by default. To change that, edit `--ui-scale` in `newtab.css`, or
 use Firefox's own zoom (Cmd +/−) on top.
@@ -146,7 +151,13 @@ Versions before 1.0.3 don't have `update_url`. Install 1.0.3 or later by hand on
   `textContent` / DOM APIs. There is no `innerHTML`, `eval` or `new Function`, and the
   default MV3 CSP is kept.
 - Keys and the iCal URL live only in `storage.local`. Nothing is hard-coded or synced.
-- `host_permissions` lists exactly the six API hosts. There is no analytics or telemetry.
+- `host_permissions` lists exactly the API hosts (Open-Meteo forecast, seasonal, archive and
+  geocoding; Google Calendar; Notion; Alpha Vantage). There is no analytics or telemetry.
+- The `geolocation` permission lets the new-tab page ask Firefox where the computer is (on a Mac,
+  Firefox must be allowed under System Settings → Privacy & Security → Location Services). It
+  asks at most every 30 minutes; coordinates are rounded to about 1 km and only sent to Open-Meteo
+  for the forecast. The place name is looked up offline. Options → Weather location can set a
+  fixed place instead.
 - The `topSites` permission (Firefox shows it as "Access browsing history") is used only to read
   the most-visited list locally for the row under the header. Only http(s) links are shown, and
   favicons are used only as inline `data:` images, so the row makes no network requests.

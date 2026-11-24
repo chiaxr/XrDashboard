@@ -2,12 +2,17 @@
 // Never waits on the network. All external text goes through textContent (lib/dom.js).
 
 import { h, s, replace } from './lib/dom.js';
-import { withDefaults, DEFAULT_UI, STALE_AFTER, AV_DAILY_CAP } from './lib/config.js';
+import { withDefaults, DEFAULT_UI, STALE_AFTER, AV_DAILY_CAP, LOCATION } from './lib/config.js';
 import {
   dateStr, minutesOfDay, addDays, fmtHM, fmtClock, fmtLongDate, fmtDayLabel, fmtShortDate, fmtWeekRange,
   monthName, tzAbbrev, fmtDuration, fmtHours, parseDateStr, fmtClock12, fmtWeekday, fmtDayMonth, mondayOf, daysBetween,
 } from './lib/time.js';
 import { describeCode, compass, precipTendency, upcomingHours, hourlySummary, isWet, withTrend, trendTemps, TREND_FROM_DAY } from './lib/weather.js';
+import {
+  locationSettings, validPlace, distanceKm, nearestCity, placeName, geoErrorText, nearHome, MOVE_KM, DETECT_EVERY,
+} from './lib/location.js';
+import { KPHL } from './lib/normals.js';
+import { normalsList, findNormals } from './lib/climate.js';
 import {
   computeGaps, groupTodos, fillGaps, loadStats, layoutEvents, nextLabel, DAY_START, DAY_END,
 } from './lib/plan.js';
@@ -112,16 +117,17 @@ function renderHeader(now) {
   $('clock').textContent = fmtClock12(now);
   $('tz').textContent = tzAbbrev(now);
   // Singapore time, with its weekday when it's already a different day there.
+  // Hidden when the computer is already on Singapore time.
   const SG = 'Asia/Singapore';
+  const sameAsSg = dateStr(now, SG) === dateStr(now) && fmtClock12(now, SG) === fmtClock12(now);
+  $('sg').hidden = sameAsSg;
   const sgDay = dateStr(now, SG) !== dateStr(now) ? `${fmtWeekday(now, SG)} ` : '';
   $('clock-sg').textContent = `${sgDay}${fmtClock12(now, SG)}`;
 
   const w = store.weather?.data;
-  if (w) {
-    $('hdr-weather').textContent = `Philadelphia · ${deg(w.current.temp)}°C ${describeCode(w.current.code).text}`;
-  } else {
-    $('hdr-weather').textContent = 'Philadelphia';
-  }
+  const name = weatherPlace().name;
+  $('wx-place').textContent = name;
+  $('hdr-weather').textContent = w ? `${name} · ${deg(w.current.temp)}°C ${describeCode(w.current.code).text}` : name;
 
   const c = config();
   const parts = [];
@@ -177,6 +183,46 @@ async function faviconAccent(src) {
     return dominantColour(ctx.getImageData(0, 0, N, N).data);
   } catch {
     return null;
+  }
+}
+
+// ── location ────────────────────────────────────────────────────────────
+
+let detecting = false;
+/**
+ * Auto mode: ask Firefox where the computer is (at most every 30 min). A move of more than
+ * MOVE_KM stores the new place, named after the nearest bundled city, and asks the background
+ * page to refetch; `since` records when that place was first detected (climate normals wait
+ * 12 h). Coordinates are rounded to ~1 km before they are stored or sent anywhere.
+ */
+async function detectLocation() {
+  const geo = store.geo || {};
+  if (detecting || locationSettings(store.config).mode !== 'auto' || !navigator.geolocation) return;
+  if (Date.now() - (geo.checkedAt || 0) < DETECT_EVERY) return;
+  detecting = true;
+  try {
+    let pos;
+    try {
+      pos = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject,
+        { enableHighAccuracy: false, maximumAge: 15 * 60 * 1000, timeout: 20000 }));
+    } catch (e) {
+      await B.storage.local.set({ geo: { ...geo, checkedAt: Date.now(), error: geoErrorText(e) } });
+      return;
+    }
+    const here = validPlace({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+    if (!here) return;
+    const prev = validPlace(geo.place);
+    if (prev && distanceKm(prev, here) <= MOVE_KM) {
+      await B.storage.local.set({ geo: { place: geo.place, since: geo.since ?? Date.now(), checkedAt: Date.now() } });
+      return;
+    }
+    const { CITIES } = await import('./lib/cities.js'); // ~1 MB; only loaded when the place changes
+    const city = nearestCity(CITIES, here.latitude, here.longitude);
+    const place = { ...here, name: placeName(city), country: city?.country || '' };
+    await B.storage.local.set({ geo: { place, since: Date.now(), checkedAt: Date.now() } });
+    B.runtime.sendMessage({ type: 'tick' }).catch(() => {});
+  } finally {
+    detecting = false;
   }
 }
 
@@ -517,6 +563,29 @@ function anomalyBar(d) {
     : { style: { left: '50%', width: `${w.toFixed(1)}%` }, color: warm, text: `+${d.toFixed(1)}°` };
 }
 
+/** The place the cached forecast is for (older caches predate locations: Philadelphia). */
+function weatherPlace() {
+  return validPlace(store.weather?.data?.place) || LOCATION;
+}
+
+/**
+ * Normals for the long-range estimate at the forecast's place: the KPHL station table near
+ * Philadelphia, else a saved ERA5 table within 50 km. Null → no estimate (days 12+ show the
+ * model forecast) until the background page has one.
+ */
+function normalsTable() {
+  const place = weatherPlace();
+  return nearHome(place) ? KPHL : findNormals(normalsList(store.normals?.data), place);
+}
+
+/** Outlook weeks, only when they are for the same place as the forecast. */
+function outlookWeeks() {
+  const o = store.weatherOutlook?.data;
+  if (!o) return [];
+  const place = validPlace(o.place) || LOCATION;
+  return distanceKm(place, weatherPlace()) <= MOVE_KM ? o.weeks || [] : [];
+}
+
 const TREND_TITLE = 'Usual high/low for this date, shifted by the week\'s ECMWF trend: past day 11 this beats daily model forecasts';
 
 function renderWeather(now) {
@@ -533,7 +602,7 @@ function renderWeather(now) {
     nodes.push(blocked);
   } else {
     const { current } = rec.data;
-    const days = withTrend(rec.data.days, store.weatherOutlook?.data?.weeks, today);
+    const days = withTrend(rec.data.days, outlookWeeks(), today, normalsTable());
     const d0 = days.find((d) => d.date === today) || days[0];
     const desc = describeCode(current.code).text;
     nodes.push(h('div', { class: 'wx-now' },
@@ -584,8 +653,9 @@ function anomalyTint(d) {
  */
 function renderOutlook(today) {
   const rec = store.weatherOutlook;
-  const weeks = rec?.data?.weeks || [];
-  const forecast = new Map(withTrend(store.weather?.data?.days, weeks, today).map((d) => [d.date, d]));
+  const weeks = outlookWeeks();
+  const normals = normalsTable();
+  const forecast = new Map(withTrend(store.weather?.data?.days, weeks, today, normals).map((d) => [d.date, d]));
   const weeksByStart = new Map(weeks.map((w) => [w.start, w]));
   const first = mondayOf(today);
   const rows = Array.from({ length: 6 }, (_, i) => addDays(first, i * 7));
@@ -608,8 +678,8 @@ function renderOutlook(today) {
       const past = d < today;
       const outlook = !fc && d > lastForecast;
       const desc = fc ? describeCode(fc.code) : null;
-      const est = outlook && !past ? trendTemps(d, weeks) : null;
-      shown.push(fc || trendTemps(d, weeks));
+      const est = outlook && !past ? trendTemps(d, weeks, normals) : null;
+      shown.push(fc || trendTemps(d, weeks, normals));
       cells.push(h('div', {
         class: `wx-cell${d === today ? ' today' : ''}${past ? ' past' : ''}`,
         style: { background: outlook && tint ? tint : null },
@@ -853,10 +923,12 @@ async function init() {
     if (document.visibilityState === 'visible') {
       render();
       refreshTopSites();
+      detectLocation().catch((e) => console.error('location', e));
       B.runtime.sendMessage({ type: 'tick' }).catch(() => {});
     }
   });
   refreshTopSites();
+  detectLocation().catch((e) => console.error('location', e));
 
   scheduleMinuteTick();
   // Ask the background page to catch up (it only fetches what is due; never blocks rendering).

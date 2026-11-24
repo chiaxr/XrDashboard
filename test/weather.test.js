@@ -1,7 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normaliseForecast, upcomingHours, hourlySummary, isWet, forecastUrl, blendTemp, dailyRainChance, trendTemps, withTrend } from '../lib/weather.js';
-import { normalFor } from '../lib/normals.js';
+import { normaliseForecast, upcomingHours, hourlySummary, isWet, forecastUrl, seasonalUrl, normalsUrl, normaliseNormals, blendTemp, dailyRainChance, trendTemps, withTrend } from '../lib/weather.js';
+import { KPHL } from '../lib/normals.js';
+import { normalFor as normalIn, normalsFromDaily, dayIndex } from '../lib/climate.js';
+
+const normalFor = (d) => normalIn(d, KPHL);
 
 const hour = (time, extra = {}) => ({ time, temp: 5, pop: 0, precip: 0, code: 0, day: true, ...extra });
 const series = (start, n, f = () => ({})) => Array.from({ length: n }, (_, i) => {
@@ -122,21 +125,56 @@ test('normals table covers every date', () => {
   assert.ok(jan.hi > jan.lo);
   assert.deepEqual(normalFor('2028-02-29'), normalFor('2026-02-28'));
   assert.equal(normalFor('bad'), null);
+  assert.equal(normalIn('2026-01-20', null), null, 'no table');
+});
+
+test('normals from daily history: smoothed calendar-day means', () => {
+  const times = [], hi = [], lo = [];
+  for (let y = 2010; y < 2016; y++) {
+    for (let i = 0; i < 365; i++) {
+      times.push(new Date(Date.UTC(y, 0, 1 + i)).toISOString().slice(0, 10));
+      hi.push(20 + 10 * Math.sin((2 * Math.PI * i) / 365)); lo.push(10);
+    }
+  }
+  const t = normalsFromDaily(times, hi, lo);
+  assert.equal(t.hi.length, 365);
+  assert.equal(t.lo[dayIndex('2026-07-01')], 10);
+  assert.ok(t.hi[dayIndex('2026-04-01')] > t.hi[dayIndex('2026-10-01')]);
+  assert.equal(normalsFromDaily(times.slice(0, 365), hi, lo), null, 'too little history');
+});
+
+test('archive response → normals table for the place', () => {
+  const times = Array.from({ length: 6 * 365 }, (_, i) => new Date(Date.UTC(2006, 0, 1 + i)).toISOString().slice(0, 10));
+  const loc = { name: 'Singapore', latitude: 1.29, longitude: 103.85 };
+  const n = normaliseNormals({ daily: { time: times, temperature_2m_max: times.map(() => 31), temperature_2m_min: times.map(() => 25) } }, loc);
+  assert.deepEqual([n.name, n.latitude, n.hi[0], n.lo[200]], ['Singapore', 1.29, 31, 25]);
+  assert.throws(() => normaliseNormals({ error: true, reason: 'x' }, loc));
+  const q = new URL(normalsUrl(loc)).searchParams;
+  assert.equal(q.get('start_date'), '2006-01-01');
+  assert.equal(q.get('latitude'), '1.29');
+});
+
+test('forecast and outlook URLs use the given place', () => {
+  const loc = { name: 'Singapore', latitude: 1.29, longitude: 103.85 };
+  assert.equal(new URL(forecastUrl(loc)).searchParams.get('longitude'), '103.85');
+  assert.equal(new URL(seasonalUrl(loc)).searchParams.get('latitude'), '1.29');
+  assert.equal(new URL(forecastUrl()).searchParams.get('latitude'), '39.95', 'default Philadelphia');
 });
 
 test('trend estimate: normal shifted by the week\'s anomaly', () => {
   const weeks = [{ start: '2026-12-07', anomaly: 2 }, { start: '2026-12-14', anomaly: -1.5 }];
   const n = normalFor('2026-12-09');
-  assert.deepEqual(trendTemps('2026-12-09', weeks), { hi: Math.round((n.hi + 2) * 10) / 10, lo: Math.round((n.lo + 2) * 10) / 10 });
-  assert.equal(trendTemps('2026-12-13', weeks).hi, Math.round((normalFor('2026-12-13').hi + 2) * 10) / 10, 'Sunday is in the week');
-  assert.equal(trendTemps('2026-12-14', weeks).hi, Math.round((normalFor('2026-12-14').hi - 1.5) * 10) / 10);
-  assert.equal(trendTemps('2026-12-30', weeks), null, 'no outlook week');
-  assert.equal(trendTemps('2026-12-09', null), null);
+  assert.deepEqual(trendTemps('2026-12-09', weeks, KPHL), { hi: Math.round((n.hi + 2) * 10) / 10, lo: Math.round((n.lo + 2) * 10) / 10 });
+  assert.equal(trendTemps('2026-12-13', weeks, KPHL).hi, Math.round((normalFor('2026-12-13').hi + 2) * 10) / 10, 'Sunday is in the week');
+  assert.equal(trendTemps('2026-12-14', weeks, KPHL).hi, Math.round((normalFor('2026-12-14').hi - 1.5) * 10) / 10);
+  assert.equal(trendTemps('2026-12-30', weeks, KPHL), null, 'no outlook week');
+  assert.equal(trendTemps('2026-12-09', weeks, null), null, 'no normals');
+  assert.equal(trendTemps('2026-12-09', null, KPHL), null);
 });
 
 test('days 12+ take the trend estimate when a week covers them', () => {
   const days = ['2026-11-24', '2026-12-04', '2026-12-05', '2026-12-09'].map((date) => ({ date, hi: 30, lo: 20, code: 3, pop: null }));
-  const out = withTrend(days, [{ start: '2026-11-30', anomaly: 1 }], '2026-11-24');
+  const out = withTrend(days, [{ start: '2026-11-30', anomaly: 1 }], '2026-11-24', KPHL);
   assert.deepEqual(out.slice(0, 2), days.slice(0, 2), 'days 1-11 keep the model values');
   assert.equal(out[2].trend, true, 'day 12');
   assert.equal(out[2].hi, Math.round((normalFor('2026-12-05').hi + 1) * 10) / 10);
