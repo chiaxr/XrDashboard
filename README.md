@@ -26,7 +26,7 @@ previous data stays and the footer item turns amber.
 
 | Source | Cadence | Budget guard |
 |---|---|---|
-| Open-Meteo forecast (current, hourly, 16 days) | 30 min | — |
+| Open-Meteo forecast (current, hourly, 16 days; NBM + ECMWF blend, see `docs/weather-models.md`) | 30 min | — |
 | Open-Meteo seasonal (EC46 weekly + SEAS5 monthly) | 6 h | — |
 | Google Calendar (secret iCal URL) | 10 min, and as soon as the day rolls over | — |
 | Notion (data-source query, API `2026-03-11`) | 10 min | — |

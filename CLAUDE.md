@@ -43,7 +43,7 @@ options.html    enter/edit keys and settings (stored in storage.local only)
 
 | Source | Use | Cadence | Notes |
 |---|---|---|---|
-| Open-Meteo forecast | Current + 16-day daily + hourly (next 36 h, for the 24 h strip) | 30 min | No key. `latitude=39.95&longitude=-75.17&forecast_days=16&forecast_hours=36&timezone=America/New_York`. Defaults are already metric. |
+| Open-Meteo forecast | Current + 16-day daily + hourly (next 36 h, for the 24 h strip) | 30 min | No key. `latitude=39.95&longitude=-75.17&forecast_days=16&forecast_hours=36&timezone=America/New_York`. Defaults are already metric. `models=best_match,ncep_nbm_conus,ecmwf_aifs025_single,ecmwf_ifs`, merged per variable (temperature = NBM + AIFS average; rain chance from NBM / model vote); highs/lows from day 12 = KPHL normal (`lib/normals.js`) + EC46 weekly anomaly — see `docs/weather-models.md` before changing models. |
 | Open-Meteo seasonal | "Monthly" view: 6 weekly rows (ECMWF EC46) + 3 months (SEAS5), anomaly vs usual + precip tendency | 6 h | Check the current Seasonal API docs for exact endpoint/params before coding. Label it as trends, not daily forecasts. |
 | Google Calendar | Events from 7 days back to 30 days ahead (schedule day navigation) | 10 min | One or more **secret iCal addresses** (read-only, up to 8), pasted into Options. Parse with ical.js; expand recurrences and exceptions; convert to local time; drop declined/cancelled if present. Merge calendars (de-duplicate shared events); each gets an accent colour; a failing calendar keeps its last events. |
 | Notion API | Open to-dos | 10 min | Internal integration with **Read content only**, shared with the to-do database only. Check the current API version / data-source query docs. |

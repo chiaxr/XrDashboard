@@ -3,6 +3,7 @@ export default {
   ignoreFiles: [
     'test',
     'design',
+    'docs',
     'CLAUDE.md',
     'README.md',
     'package.json',

@@ -230,6 +230,8 @@ body.privacy .blurrable { filter: blur(8px); }
 .wx-day { display: grid; grid-template-columns: 64px 18px 26px 1fr 26px; align-items: center; gap: 8px; height: 22px; font-size: 12px; }
 .wx-day .icon { display: flex; }
 .wx-day .lo { text-align: right; color: var(--muted); }
+.wx-day.trend .hi { color: var(--muted); }
+.wx-day.trend .fill { opacity: 0.45; }
 .bar { position: relative; height: 6px; background: var(--grid); border-radius: 3px; }
 .bar .fill { position: absolute; top: 0; height: 6px; border-radius: 3px; }
 .bar .mid { position: absolute; left: 50%; top: -3px; width: 1px; height: 12px; background: var(--tick); }
@@ -325,6 +327,7 @@ body.privacy .blurrable { filter: blur(8px); }
 .wx-cell .ic svg { width: 13px; height: 13px; }
 .wx-cell .t { font-size: 11px; white-space: nowrap; }
 .wx-cell .lo { font-size: 10px; color: var(--muted); white-space: nowrap; }
+.wx-cell .t.trend { color: var(--muted); }
 .wx-cell.today { outline: 1px solid var(--orange); outline-offset: -1px; }
 .wx-cell.today .n { color: var(--text); }
 .wx-cell.past { opacity: 0.35; }

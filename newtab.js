@@ -7,7 +7,7 @@ import {
   dateStr, minutesOfDay, addDays, fmtHM, fmtClock, fmtLongDate, fmtDayLabel, fmtShortDate, fmtWeekRange,
   monthName, tzAbbrev, fmtDuration, fmtHours, parseDateStr, fmtClock12, fmtWeekday, fmtDayMonth, mondayOf, daysBetween,
 } from './lib/time.js';
-import { describeCode, compass, precipTendency, upcomingHours, hourlySummary, isWet } from './lib/weather.js';
+import { describeCode, compass, precipTendency, upcomingHours, hourlySummary, isWet, withTrend, trendTemps, TREND_FROM_DAY } from './lib/weather.js';
 import {
   computeGaps, groupTodos, fillGaps, loadStats, layoutEvents, nextLabel, DAY_START, DAY_END,
 } from './lib/plan.js';
@@ -517,6 +517,8 @@ function anomalyBar(d) {
     : { style: { left: '50%', width: `${w.toFixed(1)}%` }, color: warm, text: `+${d.toFixed(1)}°` };
 }
 
+const TREND_TITLE = 'Usual high/low for this date, shifted by the week\'s ECMWF trend: past day 11 this beats daily model forecasts';
+
 function renderWeather(now) {
   const body = $('weather-body');
   const view = ui().weatherView === 'month' ? 'month' : 'days';
@@ -530,7 +532,8 @@ function renderWeather(now) {
   if (blocked) {
     nodes.push(blocked);
   } else {
-    const { current, days } = rec.data;
+    const { current } = rec.data;
+    const days = withTrend(rec.data.days, store.weatherOutlook?.data?.weeks, today);
     const d0 = days.find((d) => d.date === today) || days[0];
     const desc = describeCode(current.code).text;
     nodes.push(h('div', { class: 'wx-now' },
@@ -548,7 +551,7 @@ function renderWeather(now) {
       const span = (hi0 - lo0) || 1;
       nodes.push(h('div', { class: 'wx-list' },
         h('h3', null, `NEXT ${list.length} DAYS · °C`),
-        list.map((d, i) => h('div', { class: 'wx-day' },
+        list.map((d, i) => h('div', { class: d.trend ? 'wx-day trend' : 'wx-day', title: d.trend ? TREND_TITLE : null },
           h('span', { style: { color: i === 0 ? 'var(--text)' : 'var(--muted)' } }, i === 0 ? 'Today' : fmtDayLabel(d.date)),
           h('span', { class: 'icon', title: describeCode(d.code).text }, wxIcon(describeCode(d.code).kind)),
           h('span', { class: 'lo' }, deg(d.lo)),
@@ -556,7 +559,10 @@ function renderWeather(now) {
             class: 'fill',
             style: { background: 'var(--bar)', left: `${(((d.lo - lo0) / span) * 100).toFixed(1)}%`, width: `${Math.max(2, ((d.hi - d.lo) / span) * 100).toFixed(1)}%` },
           })),
-          h('span', null, deg(d.hi))))));
+          h('span', { class: 'hi' }, deg(d.hi)))),
+        list.some((d) => d.trend)
+          ? h('span', { class: 'wx-note' }, `From day ${TREND_FROM_DAY}: usual high/low shifted by that week's trend.`)
+          : null));
     }
   }
   if (view === 'month') nodes.push(renderOutlook(today));
@@ -578,8 +584,9 @@ function anomalyTint(d) {
  */
 function renderOutlook(today) {
   const rec = store.weatherOutlook;
-  const forecast = new Map((store.weather?.data?.days || []).map((d) => [d.date, d]));
-  const weeksByStart = new Map((rec?.data?.weeks || []).map((w) => [w.start, w]));
+  const weeks = rec?.data?.weeks || [];
+  const forecast = new Map(withTrend(store.weather?.data?.days, weeks, today).map((d) => [d.date, d]));
+  const weeksByStart = new Map(weeks.map((w) => [w.start, w]));
   const first = mondayOf(today);
   const rows = Array.from({ length: 6 }, (_, i) => addDays(first, i * 7));
   const lastForecast = [...forecast.keys()].sort().pop() || today;
@@ -592,6 +599,7 @@ function renderOutlook(today) {
   rows.forEach((start, ri) => {
     const week = weeksByStart.get(start);
     const tint = anomalyTint(week?.anomaly);
+    const shown = []; // each day's high/low (forecast or trend estimate), for the week average
     for (let i = 0; i < 7; i++) {
       const d = addDays(start, i);
       const p = parseDateStr(d);
@@ -600,25 +608,35 @@ function renderOutlook(today) {
       const past = d < today;
       const outlook = !fc && d > lastForecast;
       const desc = fc ? describeCode(fc.code) : null;
+      const est = outlook && !past ? trendTemps(d, weeks) : null;
+      shown.push(fc || trendTemps(d, weeks));
       cells.push(h('div', {
         class: `wx-cell${d === today ? ' today' : ''}${past ? ' past' : ''}`,
         style: { background: outlook && tint ? tint : null },
         title: fc
           ? `${fmtDayMonth(d)} · ${desc.text} · ${deg(fc.lo)}° to ${deg(fc.hi)}°${fc.pop != null ? ` · rain ${fc.pop}%` : ''}`
-          : outlook && week ? `${fmtDayMonth(d)} · week ${anomalyBar(week.anomaly).text} vs usual` : fmtDayMonth(d),
+          : outlook && week ? `${fmtDayMonth(d)} · week ${anomalyBar(week.anomaly).text} vs usual${est ? ` · about ${deg(est.lo)}° to ${deg(est.hi)}°` : ''}` : fmtDayMonth(d),
       },
       h('span', { class: 'n' }, label),
       fc && !past ? [
-        h('span', { class: 'row' }, h('span', { class: 'ic' }, wxIcon(desc.kind)), h('span', { class: 't' }, `${deg(fc.hi)}°`)),
+        h('span', { class: 'row' }, h('span', { class: 'ic' }, wxIcon(desc.kind)), h('span', { class: fc.trend ? 't trend' : 't' }, `${deg(fc.hi)}°`)),
         h('span', { class: 'lo' }, `${deg(fc.lo)}°`),
+      ] : est ? [
+        h('span', { class: 't trend' }, `~${deg(est.hi)}°`),
+        h('span', { class: 'lo' }, `${deg(est.lo)}°`),
       ] : null));
     }
     const a = week ? anomalyBar(week.anomaly) : null;
-    // The current week is partly in the past, so its rain total isn't comparable.
-    const rain = week && start > today ? precipTendency(week.precip, week.precipAnomaly) : null;
-    cells.push(h('div', { class: 'wx-cell sum', title: week ? `${fmtWeekRange(start)}: avg ${deg(week.hi)}° / ${deg(week.lo)}°, ${a.text} vs usual, ${rain || '–'}` : null },
+    // Average of the days as shown; EC46's own weekly highs/lows come from 6-hourly output
+    // and run ~2 °C cold here, so they are only the fallback.
+    const avg = (k) => (shown.every(Boolean) ? shown.reduce((t, x) => t + x[k], 0) / 7 : week?.[k]);
+    const wk = week ? { hi: avg('hi'), lo: avg('lo') } : null;
+    // Rain tendency only for next week: the current week is partly in the past, and from
+    // week 3 EC46's wetter/drier call is no better than a coin flip (docs/weather-models.md).
+    const rain = week && ri === 1 ? precipTendency(week.precip, week.precipAnomaly) : null;
+    cells.push(h('div', { class: 'wx-cell sum', title: week ? `${fmtWeekRange(start)}: avg ${deg(wk.hi)}° / ${deg(wk.lo)}°, ${a.text} vs usual, ${rain || '–'}` : null },
       a ? h('span', { style: { color: a.color } }, a.text) : h('span', { class: 'muted' }, '–'),
-      week ? h('span', { class: 'muted' }, `${deg(week.hi)}°/${deg(week.lo)}°`) : null,
+      week ? h('span', { class: 'muted' }, `${deg(wk.hi)}°/${deg(wk.lo)}°`) : null,
       rain ? h('span', { class: 'muted' }, rain) : null));
   });
 
@@ -631,7 +649,7 @@ function renderOutlook(today) {
     h('div', { class: 'wx-key' },
       h('span', null, h('span', { class: 'sw', style: { background: 'color-mix(in srgb, var(--orange) 30%, transparent)' } }), 'warmer than usual'),
       h('span', null, h('span', { class: 'sw', style: { background: 'color-mix(in srgb, var(--blue) 30%, transparent)' } }), 'colder than usual'),
-      h('span', null, 'shaded days are trends, not forecasts')),
+      h('span', null, 'shaded days are trends, not forecasts; ~ usual high/low shifted by the trend')),
     blocked,
     months.length ? h('h3', { style: { margin: '12px 0 4px' } }, 'SEASON · VS USUAL') : null,
     months.length ? h('div', { class: 'wx-months' }, months.map((m) => {
