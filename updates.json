@@ -3,6 +3,16 @@
     "newtab-dashboard@xrdashboard": {
       "updates": [
         {
+          "version": "1.0.8",
+          "update_link": "https://github.com/chiaxr/XrDashboard/releases/download/v1.0.8/newtab-dashboard-1.0.8.xpi",
+          "update_hash": "sha256:090ab9d896c52be61b6e909f398eeea462eba528648d04322efad815280b0418",
+          "browser_specific_settings": {
+            "gecko": {
+              "strict_min_version": "142.0"
+            }
+          }
+        },
+        {
           "version": "1.0.7",
           "update_link": "https://github.com/chiaxr/XrDashboard/releases/download/v1.0.7/newtab-dashboard-1.0.7.xpi",
           "update_hash": "sha256:fd8e8d6a722237ac26c6c35d6549da3f3b234e3f8e4bca142eff33513c49dd30",
@@ -36,16 +46,6 @@
           "version": "1.0.4",
           "update_link": "https://github.com/chiaxr/XrDashboard/releases/download/v1.0.4/newtab-dashboard-1.0.4.xpi",
           "update_hash": "sha256:15e4f08782429caf49aaa5868a20c73257e47f99ba388ba2139c477393afd790",
-          "browser_specific_settings": {
-            "gecko": {
-              "strict_min_version": "142.0"
-            }
-          }
-        },
-        {
-          "version": "1.0.3",
-          "update_link": "https://github.com/chiaxr/XrDashboard/releases/download/v1.0.3/newtab-dashboard-1.0.3.xpi",
-          "update_hash": "sha256:5444cdf9ecdb357cab4a3414f93680ef2549360a683045b26201e1fc57d60861",
           "browser_specific_settings": {
             "gecko": {
               "strict_min_version": "142.0"
