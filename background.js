@@ -100,7 +100,8 @@ function refreshWeather(ctx) {
   const rec = ctx.store.weather;
   return runSimple('weather', ctx, {
     cadence: CADENCE.weather, minManual: MANUAL_MIN_INTERVAL.weather, host: HOSTS.forecast,
-    configHash: locationKey(ctx.location), fetcher: () => fetchForecast(ctx.location),
+    // ';ms': wind switched from km/h to m/s, so caches from before refetch at once.
+    configHash: `${locationKey(ctx.location)};ms`, fetcher: () => fetchForecast(ctx.location),
     // Cached data from before the hourly strip existed: fetch once now rather than in 30 min.
     forceDue: !!rec?.data && !rec.error && !Array.isArray(rec.data.hours) && ctx.now - (rec.attemptedAt || 0) > MIN,
   });

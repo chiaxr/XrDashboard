@@ -20,7 +20,7 @@ The visual design is final: **design B ("Dense")**, reference mockup in
   expansion, vendored into `vendor/` with its licence. Ask before adding anything else.
   (Bundled data, not code: `lib/cities.js` from GeoNames, CC BY 4.0, via `scripts/cities.mjs`;
   `lib/normals.js` from Iowa Environmental Mesonet KPHL records, via `scripts/normals.mjs`.)
-- **Metric units everywhere** (°C, km/h, mm). 24-hour times, except the header clock, which is
+- **Metric units everywhere** (°C, m/s for wind, mm). 24-hour times, except the header clock, which is
   12-hour with Singapore time (SGT) beside it (hidden when the computer is on Singapore time).
   Timezone: the computer's (`TZ` in `lib/config.js`); tests pin `America/New_York`.
 - **Must render instantly from cache.** The new-tab page never waits on the network.
@@ -47,7 +47,7 @@ options.html    enter/edit keys and settings (stored in storage.local only)
 
 | Source | Use | Cadence | Notes |
 |---|---|---|---|
-| Open-Meteo forecast | Current + 16-day daily + hourly (next 36 h, for the 24 h strip) | 30 min | No key. Active location's coordinates (`lib/location.js`; default `39.95,-75.17`), `forecast_days=16&forecast_hours=36&timezone=<TZ>`; a location change refetches (location in `configHash`). Defaults are already metric. `models=best_match,ncep_nbm_conus,ecmwf_aifs025_single,ecmwf_ifs`, merged per variable (temperature = NBM + AIFS average; rain chance from NBM / model vote); highs/lows from day 12 = KPHL normal (`lib/normals.js`) + EC46 weekly anomaly — see `docs/weather-models.md` before changing models. |
+| Open-Meteo forecast | Current + 16-day daily + hourly (next 36 h, for the 24 h strip) | 30 min | No key. Active location's coordinates (`lib/location.js`; default `39.95,-75.17`), `forecast_days=16&forecast_hours=36&timezone=<TZ>`; a location change refetches (location in `configHash`). Defaults are already metric. `models=best_match,ncep_nbm_conus,ecmwf_aifs025_single,ecmwf_ifs`, merged per variable (temperature = NBM + AIFS average; rain chance from NBM / model vote; daily rain total = four-model average; wind from best match, shown days 1–7); highs/lows from day 12 = KPHL normal (`lib/normals.js`) + EC46 weekly anomaly — see `docs/weather-models.md` before changing models. |
 | Open-Meteo seasonal | "Monthly" view: 6 weekly rows (ECMWF EC46) + 3 months (SEAS5), anomaly vs usual + precip tendency | 6 h | Check the current Seasonal API docs for exact endpoint/params before coding. Label it as trends, not daily forecasts. |
 | Open-Meteo archive | Climate normals for the long-range estimate away from Philadelphia (ERA5 daily max/min 2006–2025) | once per place | Skipped within 25 km of Philadelphia, where the bundled KPHL table is used. A detected place is fetched only after 12 h there (`geo.since`); the last 10 places are kept and reused within 50 km (`lib/climate.js`). |
 | Open-Meteo geocoding | Options → Weather location → place search | on demand | Options page only. |
@@ -103,9 +103,10 @@ spacing, colours and type from it, not values.
   via `--accent`, neutral icons stay untinted) on one line that scrolls sideways; validated by
   `lib/sites.js` (http(s) only, favicons only as `data:image`), cached in `storage.local.topSites`
   for first paint and refreshed on load/visibility. Blurred in privacy mode.
-- Top row (one line): hourly weather strip on the left — a summary ("Rain from 15:00" /
-  "Dry next 24 h", temperature range) then 24 hourly chips (time, day/night icon, °C,
-  rain chance ≥ 20%) that **scroll horizontally** (`flex-wrap: nowrap; overflow-x: auto`)
+- Top row (one line): hourly weather strip on the left — a summary ("Light rain from 06:00, heavy
+  at 17:00" / "Dry next 24 h", temperature range, top wind or gusts ≥ 14 m/s) then 24 hourly chips
+  (time, icon — rain drawn by intensity: drizzle / light / moderate / heavy, named on hover — °C,
+  rain chance ≥ 20%, wind arrow + m/s, amber when gusty) that **scroll horizontally** (`flex-wrap: nowrap; overflow-x: auto`)
   when they don't fit. VWRA card (price, change, 50-day avg delta, 30-day range, 30-day
   sparkline from `vwraHistory`) on the right. On narrow windows VWRA wraps below the strip.
   The weather strip is not blurred in privacy mode. (The Twelve Data watchlist was removed.)
@@ -113,7 +114,7 @@ spacing, colours and type from it, not values.
   now-line; ‹ Today › buttons and ←/→ keys to view other days, kept on the title line — short
   title "Schedule · Tomorrow", full date in the line below; tomorrow by default from
   18:00), Weather (segmented toggle **16 days / Monthly**, choice persisted; Monthly is a
-  Mon–Sun calendar of six weeks: daily forecast cells, then days tinted by the weekly
+  Mon–Sun calendar of six weeks; for days 1–7 the 16-day rows draw rain by intensity (icon, named on hover) and add wind: daily forecast cells, then days tinted by the weekly
   anomaly, plus a weekly summary column and three season cards), To-do (grouped, footer stats).
 - Footer: one status item per source with last-updated time; amber when stale/errored.
 - To-dos are **read-only** in v1: clicking one opens its Notion page in a new tab. No

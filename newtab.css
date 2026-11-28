@@ -161,6 +161,8 @@ body.privacy .blurrable { filter: blur(8px); }
 .hours li .ic { display: flex; }
 .hours li .p { font-size: 10px; min-height: 12px; color: var(--muted); }
 .hours li.wet .p { color: var(--blue); }
+.hours li .w { font-size: 10px; min-height: 12px; color: var(--muted); display: flex; align-items: center; gap: 1px; }
+.hours li .w.gusty, .wx-day .wind.gusty { color: var(--amber); font-weight: 700; }
 .hours li.cur { background: color-mix(in srgb, var(--orange) 12%, transparent); }
 .hours li.cur .t { color: var(--orange); font-weight: 600; }
 .hours li.midnight { box-shadow: inset 1px 0 0 var(--dash); border-radius: 0 6px 6px 0; }
@@ -227,7 +229,8 @@ body.privacy .blurrable { filter: blur(8px); }
   font-family: var(--mono);
 }
 .wx-list { display: flex; flex-direction: column; gap: 3px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
-.wx-day { display: grid; grid-template-columns: 64px 18px 26px 1fr 26px; align-items: center; gap: 8px; height: 22px; font-size: 12px; }
+.wx-day { display: grid; grid-template-columns: 64px 18px 26px 1fr 26px 34px; align-items: center; gap: 8px; height: 22px; font-size: 12px; }
+.wx-day .wind { display: flex; align-items: center; justify-content: flex-end; gap: 2px; color: var(--muted); }
 .wx-day .icon { display: flex; }
 .wx-day .lo { text-align: right; color: var(--muted); }
 .wx-day.trend .hi { color: var(--muted); }

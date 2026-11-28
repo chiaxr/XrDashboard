@@ -7,7 +7,10 @@ import {
   dateStr, minutesOfDay, addDays, fmtHM, fmtClock, fmtLongDate, fmtDayLabel, fmtShortDate, fmtWeekRange,
   monthName, tzAbbrev, fmtDuration, fmtHours, parseDateStr, fmtClock12, fmtWeekday, fmtDayMonth, mondayOf, daysBetween,
 } from './lib/time.js';
-import { describeCode, compass, precipTendency, upcomingHours, hourlySummary, isWet, withTrend, trendTemps, TREND_FROM_DAY } from './lib/weather.js';
+import {
+  describeCode, compass, precipTendency, upcomingHours, hourlySummary, isWet, withTrend, trendTemps, TREND_FROM_DAY,
+  hourIntensity, dayIntensity, DETAIL_DAYS, SURE_RAIN_DAYS, GUSTY_MS,
+} from './lib/weather.js';
 import {
   locationSettings, validPlace, distanceKm, nearestCity, placeName, geoErrorText, nearHome, MOVE_KM, DETECT_EVERY,
 } from './lib/location.js';
@@ -67,6 +70,8 @@ function sourceState(rec, configured, { setup, name }) {
 
 // ── icons ───────────────────────────────────────────────────────────────
 
+const RAIN_CLOUD = 'M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24';
+
 function wxIcon(kind) {
   const base = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' };
   switch (kind) {
@@ -79,14 +84,50 @@ function wxIcon(kind) {
     case 'moon-partly': return s('svg', { ...base, style: { stroke: 'var(--text-2)' } },
       s('path', { d: 'M10.1 9A6 6 0 0 1 16 4a4 4 0 0 0 6 6 6 6 0 0 1-3 5.2' }),
       s('path', { d: 'M13 16a3 3 0 1 1 0 6H7a5 5 0 1 1 4.9-6Z' }));
+    // Rain by intensity: dots (drizzle), two drops (light), three (moderate; also plain "rain"),
+    // and a filled cloud with four long drops (heavy).
+    case 'drizzle': return s('svg', { ...base, style: { stroke: 'var(--blue)' } },
+      s('path', { d: RAIN_CLOUD }), s('path', { d: 'M8 19v1M8 14v1M16 19v1M16 14v1M12 21v1M12 16v1' }));
+    case 'rain-light': return s('svg', { ...base, style: { stroke: 'var(--blue)' } },
+      s('path', { d: RAIN_CLOUD }), s('path', { d: 'M9.5 15v4M14.5 16v4' }));
     case 'rain': return s('svg', { ...base, style: { stroke: 'var(--blue)' } },
-      s('path', { d: 'M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24' }), s('path', { d: 'M16 14v6M8 14v6M12 16v6' }));
+      s('path', { d: RAIN_CLOUD }), s('path', { d: 'M16 14v6M8 14v6M12 16v6' }));
+    case 'rain-heavy': return s('svg', { ...base, style: { stroke: 'var(--blue)' } },
+      s('path', { d: RAIN_CLOUD, style: { fill: 'color-mix(in srgb, var(--blue) 40%, transparent)' } }),
+      s('path', { d: 'M6.5 17.5v5M10.5 18v5M14.5 18v5M18.5 17.5v4.5' }));
     case 'snow': return s('svg', { ...base, style: { stroke: 'var(--text-2)' } },
       s('path', { d: 'M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.24' }),
       s('path', { d: 'M8 15h.01M8 19h.01M12 17h.01M12 21h.01M16 15h.01M16 19h.01' }));
     default: return s('svg', { ...base, style: { stroke: 'var(--muted)' } }, s('path', { d: 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z' }));
   }
 }
+
+/** Small arrow pointing where the wind blows to (`from` = meteorological direction it comes from). */
+function windArrow(from) {
+  if (from == null) return null;
+  return s('svg', {
+    width: 9, height: 9, viewBox: '0 0 24 24', fill: 'none', 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+    'aria-hidden': 'true', style: { stroke: 'currentColor', transform: `rotate(${Math.round(from + 180)}deg)` },
+  }, s('path', { d: 'M12 20V4M5 11l7-7 7 7' }));
+}
+
+/** "Wind 4 m/s from NE, gusts 9" for tooltips. */
+function windText(x) {
+  if (x.wind == null) return '';
+  return `Wind ${Math.round(x.wind)} m/s${x.windDir != null ? ` from ${compass(x.windDir)}` : ''}${x.gust != null ? `, gusts ${Math.round(x.gust)}` : ''}`;
+}
+
+const RAIN_ICON = { drizzle: 'drizzle', light: 'rain-light', moderate: 'rain', heavy: 'rain-heavy' };
+const RAIN_TEXT = { drizzle: 'Drizzle', light: 'Light rain', moderate: 'Moderate rain', heavy: 'Heavy rain' };
+const SNOW_TEXT = { drizzle: 'Light snow', light: 'Light snow', moderate: 'Moderate snow', heavy: 'Heavy snow' };
+
+/** Icon and hover text for precipitation of intensity `ik` (mm): rain by how heavy; snow keeps its icon. */
+function precipIcon(snow, ik, mm, note = '') {
+  return snow
+    ? { kind: 'snow', text: `${SNOW_TEXT[ik]}, about ${mm} mm of water${note}` }
+    : { kind: RAIN_ICON[ik], text: `${RAIN_TEXT[ik]}, about ${mm} mm${note}` };
+}
+const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 function sparkline({ values, width, height, color, stretch = false, label, xLabels }) {
   const attrs = { width: stretch ? '100%' : width, height: height + (xLabels ? 14 : 0), viewBox: `0 0 ${width} ${height + (xLabels ? 14 : 0)}`, role: 'img', 'aria-label': label };
@@ -358,23 +399,44 @@ function renderHourly(now) {
       h('span', { class: 'hr-title' }, `NEXT ${hours.length} H`),
       h('span', { class: `hr-msg${/^Dry/.test(msg) ? '' : ' wet'}` }, msg),
       h('span', { class: 'xs muted' }, `${deg(Math.min(...temps))}° to ${deg(Math.max(...temps))}°C`),
+      windSummary(hours),
       stale ? h('span', { class: 'xs amber', title: rec.error || null }, `as of ${fmtUpdated(rec.fetchedAt, now)}`) : null),
     h('ol', { class: 'hours', 'data-first': hours[0].time, tabindex: '0', 'aria-label': 'Hourly forecast' }, hours.map((x, i) => {
       const hh = x.time.slice(11, 13);
       const midnight = hh === '00' && i > 0;
       const d = describeCode(x.code);
-      const kind = x.day ? d.kind : (d.kind === 'sun' ? 'moon' : d.kind === 'partly' ? 'moon-partly' : d.kind);
       const pop = x.pop ?? 0;
+      // A rain code, or rain likely with an amount: the icon shows how heavy (drizzle if the
+      // amount is a trace). Hovering the icon names it.
+      const ik = hourIntensity(x.precip);
+      let ic;
+      if (ik && (d.kind === 'rain' || d.kind === 'snow' || isWet(x))) ic = precipIcon(d.kind === 'snow', ik, x.precip.toFixed(1));
+      else if (d.kind === 'rain') ic = { kind: 'drizzle', text: `${cap(d.text)}, a trace` };
+      else ic = { kind: x.day ? d.kind : (d.kind === 'sun' ? 'moon' : d.kind === 'partly' ? 'moon-partly' : d.kind), text: cap(d.text) };
+      const gusty = (x.gust ?? 0) >= GUSTY_MS;
       return h('li', {
         class: [i === 0 ? 'cur' : '', midnight ? 'midnight' : '', isWet(x) ? 'wet' : ''].filter(Boolean).join(' ') || null,
-        title: `${x.time.slice(11, 16)} · ${d.text}${x.pop != null ? ` · ${pop}% chance of rain` : ''}${x.precip ? ` · ${x.precip.toFixed(1)} mm` : ''}`,
+        title: [`${x.time.slice(11, 16)} · ${d.text}${x.pop != null ? ` · ${pop}% chance of rain` : ''}`, windText(x)].filter(Boolean).join('\n'),
       },
       h('span', { class: 't' }, i === 0 ? 'Now' : midnight ? fmtDayLabel(x.time.slice(0, 10)).split(' ')[0] : hh),
-      h('span', { class: 'ic' }, wxIcon(kind)),
+      h('span', { class: 'ic', title: ic.text }, wxIcon(ic.kind)),
       h('span', { class: 'v' }, `${deg(x.temp)}°`),
-      h('span', { class: 'p' }, pop >= 20 ? `${Math.round(pop / 10) * 10}%` : ''));
+      h('span', { class: 'p' }, pop >= 20 ? `${Math.round(pop / 10) * 10}%` : ''),
+      h('span', { class: gusty ? 'w gusty' : 'w' }, x.wind == null ? '' : [windArrow(x.windDir), String(Math.round(x.wind))]));
     })));
   if (keep > 0) el.querySelector('.hours').scrollLeft = keep;
+}
+
+/** Summary-column wind line: "Wind ≤ 6 m/s", or the strongest gusts when they reach GUSTY_MS. */
+function windSummary(hours) {
+  const winds = hours.map((x) => x.wind).filter((v) => v != null);
+  if (!winds.length) return null;
+  const gusts = hours.filter((x) => x.gust != null);
+  const top = gusts.length ? gusts.reduce((a, b) => (b.gust > a.gust ? b : a)) : null;
+  if (top && top.gust >= GUSTY_MS) {
+    return h('span', { class: 'xs amber' }, `Gusts ${Math.round(top.gust)} m/s at ${top.time.slice(11, 16)}`);
+  }
+  return h('span', { class: 'xs muted' }, `Wind ≤ ${Math.round(Math.max(...winds))} m/s`);
 }
 
 // ── schedule ────────────────────────────────────────────────────────────
@@ -612,30 +674,56 @@ function renderWeather(now) {
         h('span', null, `Feels ${deg(current.feels)}°`),
         h('span', null, `H ${deg(d0.hi)}° · L ${deg(d0.lo)}°`),
         h('span', null, `Rain ${d0.pop ?? '–'}%`),
-        h('span', null, `Wind ${current.wind == null ? '–' : Math.round(current.wind)} km/h ${compass(current.windDir)}`),
+        h('span', null, `Wind ${current.wind == null ? '–' : Math.round(current.wind)} m/s ${compass(current.windDir)}`),
         h('span', null, d0.sunset ? `Sunset ${d0.sunset}` : ''))));
     if (view === 'days') {
       const list = days.filter((d) => d.date >= today).slice(0, 16);
       const lo0 = Math.min(...list.map((d) => d.lo)), hi0 = Math.max(...list.map((d) => d.hi));
       const span = (hi0 - lo0) || 1;
       nodes.push(h('div', { class: 'wx-list' },
-        h('h3', null, `NEXT ${list.length} DAYS · °C`),
+        h('h3', null, `NEXT ${list.length} DAYS · °C · m/s`),
         list.map((d, i) => h('div', { class: d.trend ? 'wx-day trend' : 'wx-day', title: d.trend ? TREND_TITLE : null },
           h('span', { style: { color: i === 0 ? 'var(--text)' : 'var(--muted)' } }, i === 0 ? 'Today' : fmtDayLabel(d.date)),
-          h('span', { class: 'icon', title: describeCode(d.code).text }, wxIcon(describeCode(d.code).kind)),
+          dayIcon(d, i + 1),
           h('span', { class: 'lo' }, deg(d.lo)),
           h('span', { class: 'bar' }, h('span', {
             class: 'fill',
             style: { background: 'var(--bar)', left: `${(((d.lo - lo0) / span) * 100).toFixed(1)}%`, width: `${Math.max(2, ((d.hi - d.lo) / span) * 100).toFixed(1)}%` },
           })),
-          h('span', { class: 'hi' }, deg(d.hi)))),
-        list.some((d) => d.trend)
-          ? h('span', { class: 'wx-note' }, `From day ${TREND_FROM_DAY}: usual high/low shifted by that week's trend.`)
-          : null));
+          h('span', { class: 'hi' }, deg(d.hi)),
+          dayWind(d, i + 1))),
+        h('span', { class: 'wx-note' }, [
+          `Rain intensity (hover the icon) and wind: next ${DETAIL_DAYS} days`,
+          list.some((d) => d.trend) ? `; from day ${TREND_FROM_DAY}, usual high/low shifted by that week's trend.` : '.',
+        ].join(''))));
     }
   }
   if (view === 'month') nodes.push(renderOutlook(today));
   replace(body, h('div', { style: { display: 'flex', 'flex-direction': 'column', gap: '14px' } }, nodes));
+}
+
+/**
+ * Weather icon for a 16-day row (`n` = 1 for today). For days 1–DETAIL_DAYS rain is drawn by
+ * the models' average total (drizzle → heavy), which is what was scored; a rain code with less
+ * than that shows as cloud. Later days keep the weather-code icon.
+ */
+function dayIcon(d, n) {
+  const c = describeCode(d.code);
+  let ic = { kind: c.kind, text: c.text };
+  if (n <= DETAIL_DAYS) {
+    const ik = dayIntensity(d.rain, d.pop);
+    const note = n > SURE_RAIN_DAYS ? ' (rough this far ahead)' : '';
+    if (ik) ic = precipIcon(c.kind === 'snow', ik, d.rain, note);
+    else if (c.kind === 'rain') ic = { kind: 'cloud', text: `Little or no rain (about ${d.rain ?? 0} mm)` };
+  }
+  return h('span', { class: 'icon', title: cap(ic.text) }, wxIcon(ic.kind));
+}
+
+/** Wind cell for a 16-day row: blank past DETAIL_DAYS, amber when gusts reach GUSTY_MS. */
+function dayWind(d, n) {
+  if (n > DETAIL_DAYS || d.wind == null) return h('span', { class: 'wind' });
+  return h('span', { class: (d.gust ?? 0) >= GUSTY_MS ? 'wind gusty' : 'wind', title: windText(d).replace('Wind', 'Wind up to') },
+    windArrow(d.windDir), String(Math.round(d.wind)));
 }
 
 /** Background tint for a weekly temperature anomaly (warm orange / cold blue). */

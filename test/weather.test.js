@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normaliseForecast, upcomingHours, hourlySummary, isWet, forecastUrl, seasonalUrl, normalsUrl, normaliseNormals, blendTemp, dailyRainChance, trendTemps, withTrend } from '../lib/weather.js';
+import { normaliseForecast, upcomingHours, hourlySummary, isWet, hourIntensity, dayIntensity, forecastUrl, seasonalUrl, normalsUrl, normaliseNormals, blendTemp, dailyRainChance, trendTemps, withTrend } from '../lib/weather.js';
 import { KPHL } from '../lib/normals.js';
 import { normalFor as normalIn, normalsFromDaily, dayIndex } from '../lib/climate.js';
 
@@ -19,6 +19,9 @@ test('forecast URL asks for hourly data from the current hour', () => {
   assert.match(q.get('hourly'), /precipitation_probability/);
   assert.equal(q.get('models'), 'best_match,ncep_nbm_conus,ecmwf_aifs025_single,ecmwf_ifs');
   assert.match(q.get('daily'), /precipitation_sum/);
+  assert.equal(q.get('wind_speed_unit'), 'ms');
+  assert.match(q.get('hourly'), /wind_gusts_10m/);
+  assert.match(q.get('daily'), /wind_speed_10m_max/);
 });
 
 test('temperature blend: NBM + AIFS, then IFS + AIFS, then any single model', () => {
@@ -85,12 +88,15 @@ test('hourly normalisation validates and clamps', () => {
       precipitation: [0.4, 0, 0, null],
       weather_code: [61, 0, 0, 2],
       is_day: [1, 1, 1, 0],
+      wind_speed_10m: [12.3, 0, 0, null],
+      wind_gusts_10m: [30, 0, 0, null],
+      wind_direction_10m: [225, 0, 0, null],
     },
   };
   const { hours } = normaliseForecast(raw);
   assert.deepEqual(hours, [
-    { time: '2026-11-19T08:00', temp: 4, pop: 100, precip: 0.4, code: 61, day: true },
-    { time: '2026-11-19T11:00', temp: 7, pop: 0, precip: null, code: 2, day: false },
+    { time: '2026-11-19T08:00', temp: 4, pop: 100, precip: 0.4, code: 61, day: true, wind: 12.3, gust: 30, windDir: 225 },
+    { time: '2026-11-19T11:00', temp: 7, pop: 0, precip: null, code: 2, day: false, wind: null, gust: null, windDir: null },
   ]);
   assert.deepEqual(normaliseForecast({ ...raw, hourly: undefined }).hours, []);
 });
@@ -115,8 +121,44 @@ test('hourly summary', () => {
   assert.equal(hourlySummary(series('2026-11-19T08', 24, (i) => (i >= 7 && i < 10 ? { pop: 80, code: 61 } : {})), day), 'Rain from 15:00');
   assert.equal(hourlySummary(series('2026-11-19T08', 24, (i) => (i < 3 ? { pop: 70, code: 61 } : {})), day), 'Rain until 11:00');
   assert.equal(hourlySummary(series('2026-11-19T08', 24, (i) => (i >= 19 ? { pop: 90, code: 73 } : {})), day), 'Snow from Fri 03:00');
-  assert.equal(hourlySummary(series('2026-11-19T08', 6, () => ({ pop: 60, precip: 1, code: 63 })), day), 'Rain for the next 6 h');
+  assert.equal(hourlySummary(series('2026-11-19T08', 6, () => ({ pop: 60, precip: 1, code: 63 })), day), 'Light rain for the next 6 h');
+  const spell = (peak) => series('2026-11-19T08', 24, (i) => (i >= 2 && i < 5 ? { pop: 80, code: 61, precip: i === 3 ? peak : 0.2 } : {}));
+  assert.equal(hourlySummary(spell(0.3), day), 'Drizzle from 10:00');
+  assert.equal(hourlySummary(spell(1), day), 'Drizzle from 10:00', 'a light peak is not worth mentioning');
+  assert.equal(hourlySummary(spell(4), day), 'Drizzle from 10:00, moderate at 11:00');
+  assert.equal(hourlySummary(spell(9), day), 'Drizzle from 10:00, heavy at 11:00');
+  const now = series('2026-11-19T08', 24, (i) => (i < 4 ? { pop: 90, code: 63, precip: [3, 9, 2, 1][i] } : {}));
+  assert.equal(hourlySummary(now, day), 'Moderate rain until 12:00, heavy at 09:00');
+  assert.equal(hourlySummary(series('2026-11-19T08', 24, (i) => (i >= 19 ? { pop: 90, code: 73, precip: 3 } : {})), day), 'Heavy snow from Fri 03:00');
+  const later = series('2026-11-19T08', 24, (i) => (i >= 18 ? { pop: 90, code: 61, precip: i === 21 ? 9 : 1 } : {}));
+  assert.equal(hourlySummary(later, day), 'Light rain from Fri 02:00, heavy at 05:00', 'the day is named once');
   assert.equal(hourlySummary([], day), '');
+});
+
+test('rain intensity bands', () => {
+  assert.deepEqual([0, 0.05, 0.3, 1, 3, 8].map(hourIntensity), [null, null, 'drizzle', 'light', 'moderate', 'heavy']);
+  assert.equal(dayIntensity(0.1, 90), null);
+  assert.equal(dayIntensity(0.6, 30), null, 'a trace that may not come is not drizzle');
+  assert.equal(dayIntensity(0.6, 70), 'drizzle');
+  assert.deepEqual([2, 8, 20].map((mm) => dayIntensity(mm, 80)), ['light', 'moderate', 'heavy']);
+  assert.equal(dayIntensity(null, 80), null);
+});
+
+test('daily rain total is the models\' average; wind from best match', () => {
+  const n = (v) => [v];
+  const sfx = (o, model) => Object.fromEntries(Object.entries(o).map(([k, v]) => [`${k}_${model}`, v]));
+  const { days } = normaliseForecast({
+    current: { time: '2026-11-19T08:00', temperature_2m: 4 },
+    daily: {
+      time: ['2026-11-19'],
+      ...sfx({ temperature_2m_max: n(10), temperature_2m_min: n(2), precipitation_sum: n(10), wind_speed_10m_max: n(31.4), wind_gusts_10m_max: n(55), wind_direction_10m_dominant: n(300) }, 'best_match'),
+      ...sfx({ precipitation_sum: n(20) }, 'ncep_nbm_conus'),
+      ...sfx({ precipitation_sum: n(null) }, 'ecmwf_aifs025_single'),
+      ...sfx({ precipitation_sum: n(3) }, 'ecmwf_ifs'),
+    },
+  });
+  assert.equal(days[0].rain, 11);
+  assert.deepEqual([days[0].wind, days[0].gust, days[0].windDir], [31.4, 55, 300]);
 });
 
 test('normals table covers every date', () => {

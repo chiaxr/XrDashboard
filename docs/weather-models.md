@@ -12,7 +12,10 @@ HRRR runs about 2 °C too cold overnight, so the forecast now requests four mode
 | Hourly rain chance | NBM (best match serves the same numbers in the US) |
 | "Rain from 15:00" summary | Rain chance ≥ 50% only; HRRR's rain amount is used only when there is no chance figure |
 | Daily rain chance | Days 1–7: share of the four models with ≥ 1 mm. Days 8–11: NBM. Days 12–16: not shown |
-| Weather codes, rain amounts, sunrise/sunset | `best_match` |
+| Weather codes, hourly rain amounts, sunrise/sunset | `best_match` |
+| Rain intensity (hourly chip icons, summary) | `best_match` hourly amount: drizzle < 0.5, light < 2.5, moderate < 7.6, heavy ≥ 7.6 mm/h, drawn as four rain icons (named on hover). A spell is named by its start, plus a heavier peak ("Light rain from 06:00, heavy at 17:00") |
+| Rain intensity (16-day icons, days 1–7) | Average of the four models' daily totals: light 1–5, moderate 5–15, heavy ≥ 15 mm (drizzle: under 1 mm with rain chance ≥ 50%); a rain code with less shows as cloud. Hover notes "rough" for days 4–7. Later days keep the weather-code icon |
+| Wind (hourly chips, 16-day list days 1–7) | `best_match` speed, gusts and direction, requested in m/s (`wind_speed_unit=ms`); gusts ≥ 14 m/s (≈ 50 km/h) flagged amber |
 | Weekly outlook | EC46 ensemble mean (unchanged); wetter/drier shown for next week only |
 | Monthly outlook | SEAS5 (unchanged; Open-Meteo's only seasonal model; not verifiable — the archive holds one run) |
 
@@ -74,3 +77,40 @@ ERA5 grid cells), so travelling does not fetch at every stop. Until then, days 1
 
 Caveats: one station, ~10 km from the dashboard's Center City point; the 16-day and weekly
 tests cover seven months. Rescore if Open-Meteo changes models (HRRR is due to be replaced by RRFS).
+
+## Wind and rain intensity (scored Nov 2026)
+
+Same observations (KPHL METAR wind is a 2-minute mean; gusts are only reported when present, so
+observed daily peaks are undercounted). 00Z Single Runs every fourth day for wind (55 runs),
+every other day for rain (110 runs), Apr–Nov 2026.
+
+Scored in km/h (shown in m/s: divide by 3.6). Hourly wind speed mean absolute error, km/h
+(always forecasting the mean: 6.6):
+
+| Days | GFS (`best_match`) | IFS | AIFS | NBM | IFS + AIFS |
+|---|---|---|---|---|---|
+| 1–3 | 4.9 | 5.0 | 5.1 | 6.1 | 4.9 |
+| 4–7 | 5.7 | 5.9 | 6.0 | 6.7 | 5.7 |
+| 8–11 | 6.7 | 7.3 | 7.0 | 7.2 | 6.8 |
+| 12–15 | 6.8 | 7.4 | 7.3 | – | 7.0 |
+
+Daily maximum wind: GFS 7.1 / 8.3 / 9.3 km/h for days 1–3 / 4–7 / 8–11, the best of the four.
+Every model reads low at the airport (GFS by about 3 km/h, NBM by 5); not corrected, since the
+city is less exposed than the airfield. Gusts ≥ 50 km/h: GFS caught half of such days in days 1–3
+(43% false alarms), about a third by days 8–11; AIFS has no gusts. Past day 7 no model beat the
+mean, so wind is shown for 7 days.
+
+Daily rain total by category (dry < 1, light < 5, moderate < 15, heavy ≥ 15 mm). Exact-category
+scores sit near the 72% that "always dry" gets, but within one category the models are right
+93–97% of the time for days 1–3. Heavy days (25–36 in each lead band), hit rate / false alarms:
+
+| Days | Four-model average | NBM + AIFS | NBM | IFS | GFS |
+|---|---|---|---|---|---|
+| 1–3 | 0.60 / 0.21 | 0.56 / 0.36 | 0.56 / 0.36 | 0.56 / 0.48 | 0.52 / 0.48 |
+| 4–7 | 0.11 / 0.56 | 0.03 / 0.83 | 0.11 / 0.60 | 0.25 / 0.69 | 0.22 / 0.58 |
+| 8–11 | 0.00 / 1.00 | 0.03 / 0.83 | 0.03 / 0.80 | 0.14 / 0.80 | 0.06 / 0.87 |
+
+So daily intensity is shown for days 1–7, muted from day 4. Hourly downpours (≥ 7.6 mm in an
+hour) are the weakest part: of 19 such days in the first two days of each run, GFS caught 6
+(62% false alarms) and IFS 4. Treat "heavy at 17:00" as "heavy rain likely that afternoon".
+
